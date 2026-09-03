@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stone Paper Scissors - ClassicSchoolGames</title>
+  <style>
+    :root {
+      --bg-color: #f4f4f6;
+      --card-bg: #ffffff;
+      --text-color: #1a1a1a;
+      --text-muted: #666666;
+      --accent-color: #ec4899;
+      --border-color: #e0e0e0;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f0f12;
+      --card-bg: #18181c;
+      --text-color: #f0f0f0;
+      --text-muted: #999999;
+      --accent-color: #ec4899;
+      --border-color: #2a2a30;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--text-color);
+    }
+
+    .brand-icon {
+      width: 14px;
+      height: 14px;
+      background-color: var(--accent-color);
+      display: inline-block;
+      box-shadow: 2px 2px 0px var(--text-color);
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover { border-color: var(--accent-color); }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1.5rem;
+      max-width: 700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .game-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      box-shadow: var(--shadow);
+      width: 100%;
+      position: relative;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.03);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    .score-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .score-num {
+      font-size: 1.8rem;
+      color: var(--accent-color);
+    }
+
+    .battle-arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      min-height: 120px;
+      padding: 1rem 0;
+    }
+
+    .choice-display {
+      font-size: 4rem;
+      user-select: none;
+    }
+
+    .versus-badge {
+      font-weight: 900;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+    }
+
+    .result-banner {
+      font-size: 1.3rem;
+      font-weight: 800;
+      min-height: 2rem;
+      color: var(--accent-color);
+      text-align: center;
+    }
+
+    .choices-grid {
+      display: flex;
+      gap: 1.25rem;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .choice-btn {
+      background-color: var(--bg-color);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem;
+      font-size: 2.5rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+      max-width: 120px;
+      transition: all 0.2s ease;
+    }
+
+    .choice-btn:hover {
+      border-color: var(--accent-color);
+      transform: translateY(-4px);
+    }
+
+    .choice-label {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--text-color);
+    }
+
+    /* Modal System */
+    .modal-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      border-radius: 12px;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-btn {
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: none;
+      background-color: var(--accent-color);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="brand">
+      <span class="brand-icon"></span>
+      ClassicSchoolGames
+    </a>
+    <div class="controls-right">
+      <button class="btn" id="themeToggle">
+        <span id="themeLabel">System Mode</span>
+      </button>
+      <a href="index.html" class="btn">← Dashboard</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="game-card">
+      <div class="scoreboard">
+        <div class="score-block">
+          <span>YOU</span>
+          <span class="score-num" id="userScore">0</span>
+        </div>
+        <div class="score-block">
+          <span>Target: First to 5</span>
+        </div>
+        <div class="score-block">
+          <span>BOT</span>
+          <span class="score-num" id="botScore">0</span>
+        </div>
+      </div>
+
+      <div class="battle-arena">
+        <div class="choice-display" id="userDisplay">❓</div>
+        <div class="versus-badge">VS</div>
+        <div class="choice-display" id="botDisplay">❓</div>
+      </div>
+
+      <div class="result-banner" id="resultBanner">Make your move!</div>
+
+      <div class="choices-grid">
+        <button class="choice-btn" onclick="playTurn('stone')">
+          <span>🪨</span>
+          <span class="choice-label">Stone</span>
+        </button>
+        <button class="choice-btn" onclick="playTurn('paper')">
+          <span>📄</span>
+          <span class="choice-label">Paper</span>
+        </button>
+        <button class="choice-btn" onclick="playTurn('scissors')">
+          <span>✂️</span>
+          <span class="choice-label">Scissors</span>
+        </button>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div class="modal-overlay" id="gameOverModal">
+        <div class="modal-card">
+          <h2 id="modalTitle">GAME OVER</h2>
+          <p id="modalMsg" style="color:var(--text-muted); font-size:0.9rem;"></p>
+          <button class="modal-btn" onclick="resetGame()">Play Again</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /* Audio Synthesizer */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'win') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      } else if (type === 'lose') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      } else if (type === 'draw') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      }
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    /* Theme Toggle */
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeLabel.textContent = 'Dark Mode';
+      } else if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeLabel.textContent = 'Light Mode';
+      } else {
+        const isSystemDark = systemPrefersDark.matches;
+        document.documentElement.setAttribute('data-theme', isSystemDark ? 'dark' : 'light');
+        themeLabel.textContent = `System (${isSystemDark ? 'Dark' : 'Light'})`;
+      }
+    }
+    let currentPreference = localStorage.getItem('themePreference') || 'system';
+    themeToggleBtn.addEventListener('click', () => {
+      currentPreference = currentPreference === 'system' ? 'dark' : currentPreference === 'dark' ? 'light' : 'system';
+      localStorage.setItem('themePreference', currentPreference);
+      applyTheme(currentPreference);
+    });
+    applyTheme(currentPreference);
+
+    /* Game Logic */
+    const icons = { stone: "🪨", paper: "📄", scissors: "✂️" };
+    const choices = ["stone", "paper", "scissors"];
+    let userScore = 0;
+    let botScore = 0;
+    const winningScore = 5;
+
+    function playTurn(userChoice) {
+      if (userScore >= winningScore || botScore >= winningScore) return;
+
+      const botChoice = choices[Math.floor(Math.random() * choices.length)];
+
+      document.getElementById('userDisplay').textContent = icons[userChoice];
+      document.getElementById('botDisplay').textContent = icons[botChoice];
+
+      if (userChoice === botChoice) {
+        playSound('draw');
+        document.getElementById('resultBanner').textContent = "It's a Draw!";
+      } else if (
+        (userChoice === "stone" && botChoice === "scissors") ||
+        (userChoice === "paper" && botChoice === "stone") ||
+        (userChoice === "scissors" && botChoice === "paper")
+      ) {
+        playSound('win');
+        userScore++;
+        document.getElementById('userScore').textContent = userScore;
+        document.getElementById('resultBanner').textContent = "You win this round!";
+      } else {
+        playSound('lose');
+        botScore++;
+        document.getElementById('botScore').textContent = botScore;
+        document.getElementById('resultBanner').textContent = "Bot wins this round!";
+      }
+
+      checkWinner();
+    }
+
+    function checkWinner() {
+      if (userScore >= winningScore) {
+        document.getElementById('modalTitle').textContent = "VICTORY!";
+        document.getElementById('modalMsg').textContent = `You beat the bot ${userScore} to ${botScore}!`;
+        document.getElementById('gameOverModal').style.display = 'flex';
+      } else if (botScore >= winningScore) {
+        document.getElementById('modalTitle').textContent = "DEFEAT!";
+        document.getElementById('modalMsg').textContent = `Bot won ${botScore} to ${userScore}.`;
+        document.getElementById('gameOverModal').style.display = 'flex';
+      }
+    }
+
+    function resetGame() {
+      userScore = 0;
+      botScore = 0;
+      document.getElementById('userScore').textContent = "0";
+      document.getElementById('botScore').textContent = "0";
+      document.getElementById('userDisplay').textContent = "❓";
+      document.getElementById('botDisplay').textContent = "❓";
+      document.getElementById('resultBanner').textContent = "Make your move!";
+      document.getElementById('gameOverModal').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

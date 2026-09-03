@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matricks - ClassicSchoolGames</title>
+  <style>
+    :root {
+      --bg-color: #f4f4f6;
+      --card-bg: #ffffff;
+      --text-color: #1a1a1a;
+      --text-muted: #666666;
+      --accent-color: #8a2be2;
+      --border-color: #e0e0e0;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f0f12;
+      --card-bg: #18181c;
+      --text-color: #f0f0f0;
+      --text-muted: #999999;
+      --accent-color: #a855f7;
+      --border-color: #2a2a30;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--text-color);
+    }
+
+    .brand-icon {
+      width: 14px;
+      height: 14px;
+      background-color: var(--accent-color);
+      display: inline-block;
+      box-shadow: 2px 2px 0px var(--text-color);
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover { border-color: var(--accent-color); }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1.5rem;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .game-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      box-shadow: var(--shadow);
+      width: 100%;
+      position: relative;
+    }
+
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      min-height: 250px;
+      border: 1px dashed var(--border-color);
+      border-radius: 10px;
+      padding: 1rem;
+      background: rgba(0,0,0,0.02);
+    }
+
+    .player-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .player-title {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .loads-badge {
+      background-color: var(--accent-color);
+      color: #fff;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .gesture-display {
+      width: 130px;
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--bg-color);
+      border: 2px solid var(--border-color);
+      padding: 12px;
+    }
+
+    .gesture-display svg {
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: var(--text-color);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .vs-divider {
+      font-weight: 900;
+      font-size: 1.5rem;
+      color: var(--accent-color);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .move-btn {
+      background-color: var(--card-bg);
+      border: 2px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.75rem 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .move-btn:hover:not(:disabled) {
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+    }
+
+    .move-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-svg {
+      width: 32px;
+      height: 32px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .status-banner {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      min-height: 24px;
+      text-align: center;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      border-radius: 12px;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-btn {
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: none;
+      background-color: var(--accent-color);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="brand">
+      <span class="brand-icon"></span>
+      ClassicSchoolGames
+    </a>
+    <div class="controls-right">
+      <button class="btn" id="themeToggle">
+        <span id="themeLabel">System Mode</span>
+      </button>
+      <a href="index.html" class="btn">← Dashboard</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="game-card">
+      <div class="status-banner" id="statusBanner">Choose your hand gesture!</div>
+
+      <div class="arena">
+        <div class="player-box">
+          <span class="player-title">You</span>
+          <span class="loads-badge" id="p1Loads">0 Loads</span>
+          <div class="gesture-display" id="p1Gesture"></div>
+        </div>
+
+        <div class="vs-divider">VS</div>
+
+        <div class="player-box">
+          <span class="player-title">Opponent Bot</span>
+          <span class="loads-badge" id="p2Loads">0 Loads</span>
+          <div class="gesture-display" id="p2Gesture"></div>
+        </div>
+      </div>
+
+      <div class="controls-grid">
+        <button class="move-btn" id="btnLoad" onclick="playTurn('load')">
+          <div id="svg-btn-load"></div>
+          <span>LOAD</span>
+        </button>
+
+        <button class="move-btn" id="btnShoot1" onclick="playTurn('shoot1')">
+          <div id="svg-btn-shoot1"></div>
+          <span>GUN (1)</span>
+        </button>
+
+        <button class="move-btn" id="btnShield1" onclick="playTurn('shield1')">
+          <div id="svg-btn-shield1"></div>
+          <span>SHIELD (1)</span>
+        </button>
+
+        <button class="move-btn" id="btnShoot2" onclick="playTurn('shoot2')">
+          <div id="svg-btn-shoot2"></div>
+          <span>GUN (2)</span>
+        </button>
+
+        <button class="move-btn" id="btnShield2" onclick="playTurn('shield2')">
+          <div id="svg-btn-shield2"></div>
+          <span>SHIELD (2)</span>
+        </button>
+
+        <button class="move-btn" id="btnShoot3" onclick="playTurn('shoot3')">
+          <div id="svg-btn-shoot3"></div>
+          <span>GUN (3)</span>
+        </button>
+
+        <button class="move-btn" id="btnShield3" onclick="playTurn('shield3')">
+          <div id="svg-btn-shield3"></div>
+          <span>SHIELD (3)</span>
+        </button>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div class="modal-overlay" id="gameOverModal">
+        <div class="modal-card">
+          <h2 id="modalTitle">GAME OVER</h2>
+          <p id="modalMsg" style="color:var(--text-muted); font-size:0.9rem;"></p>
+          <button class="modal-btn" onclick="resetGame()">Play Again</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /* Vector SVG Hand Art */
+    const SVG_TEMPLATES = {
+      none: `<svg viewBox="0 0 24 24"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+      load: `<svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 0 1 2 2v4a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6v-1.5"/></svg>`,
+      shoot1: `<svg viewBox="0 0 24 24"><path d="M22 10H10a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h2"/><path d="M10 10V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v7"/><path d="M12 15v3a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-3"/></svg>`,
+      shield1: `<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+      shoot2: `<svg viewBox="0 0 24 24"><path d="M22 8H10a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2"/><path d="M22 14H10a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2"/><path d="M12 18v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-3"/></svg>`,
+      shield2: `<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v8"/></svg>`,
+      shoot3: `<svg viewBox="0 0 24 24"><path d="M22 6H10a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2"/><path d="M22 12H10a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2"/><path d="M22 18H10a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2"/></svg>`,
+      shield3: `<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 7v10M8 12h8"/></svg>`
+    };
+
+    function renderSVGs() {
+      document.getElementById('p1Gesture').innerHTML = SVG_TEMPLATES.none;
+      document.getElementById('p2Gesture').innerHTML = SVG_TEMPLATES.none;
+
+      Object.keys(SVG_TEMPLATES).forEach(key => {
+        const btnElem = document.getElementById(`svg-btn-${key}`);
+        if (btnElem) {
+          btnElem.innerHTML = SVG_TEMPLATES[key];
+          const svg = btnElem.querySelector('svg');
+          if (svg) svg.classList.add('btn-svg');
+        }
+      });
+    }
+
+    /* Web Audio Synthesizer */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'load') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      } else if (type === 'shoot') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      } else if (type === 'shield') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      }
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    /* Theme Toggle */
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeLabel.textContent = 'Dark Mode';
+      } else if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeLabel.textContent = 'Light Mode';
+      } else {
+        const isSystemDark = systemPrefersDark.matches;
+        document.documentElement.setAttribute('data-theme', isSystemDark ? 'dark' : 'light');
+        themeLabel.textContent = `System (${isSystemDark ? 'Dark' : 'Light'})`;
+      }
+    }
+    let currentPreference = localStorage.getItem('themePreference') || 'system';
+    themeToggleBtn.addEventListener('click', () => {
+      currentPreference = currentPreference === 'system' ? 'dark' : currentPreference === 'dark' ? 'light' : 'system';
+      localStorage.setItem('themePreference', currentPreference);
+      applyTheme(currentPreference);
+    });
+    applyTheme(currentPreference);
+
+    /* Game State & Interception Rules */
+    let p1Loads = 0;
+    let p2Loads = 0;
+
+    const MOVES = {
+      load: { name: 'Load', cost: 0, tier: 0, type: 'load' },
+      shoot1: { name: 'Gun (1)', cost: 1, tier: 1, type: 'gun' },
+      shield1: { name: 'Shield (1)', cost: 0, tier: 1, type: 'shield' },
+      shoot2: { name: 'Gun (2)', cost: 2, tier: 2, type: 'gun' },
+      shield2: { name: 'Shield (2)', cost: 0, tier: 2, type: 'shield' },
+      shoot3: { name: 'Gun (3)', cost: 3, tier: 3, type: 'gun' },
+      shield3: { name: 'Shield (3)', cost: 0, tier: 3, type: 'shield' }
+    };
+
+    function updateUI() {
+      document.getElementById('p1Loads').textContent = `${p1Loads} Load${p1Loads === 1 ? '' : 's'}`;
+      document.getElementById('p2Loads').textContent = `${p2Loads} Load${p2Loads === 1 ? '' : 's'}`;
+
+      document.getElementById('btnShoot1').disabled = p1Loads < 1;
+      document.getElementById('btnShoot2').disabled = p1Loads < 2;
+      document.getElementById('btnShoot3').disabled = p1Loads < 3;
+    }
+
+    function getBotMove() {
+      const valid = ['load', 'shield1', 'shield2', 'shield3'];
+      if (p2Loads >= 1) valid.push('shoot1');
+      if (p2Loads >= 2) valid.push('shoot2');
+      if (p2Loads >= 3) valid.push('shoot3');
+
+      if (p2Loads >= 3 && Math.random() < 0.7) return 'shoot3';
+      if (p1Loads === 0 && Math.random() < 0.5) return 'load';
+      
+      return valid[Math.floor(Math.random() * valid.length)];
+    }
+
+    function playTurn(m1Key) {
+      const m2Key = getBotMove();
+      const m1 = MOVES[m1Key];
+      const m2 = MOVES[m2Key];
+
+      p1Loads -= m1.cost;
+      p2Loads -= m2.cost;
+
+      if (m1Key === 'load') p1Loads++;
+      if (m2Key === 'load') p2Loads++;
+
+      document.getElementById('p1Gesture').innerHTML = SVG_TEMPLATES[m1Key];
+      document.getElementById('p2Gesture').innerHTML = SVG_TEMPLATES[m2Key];
+
+      playSound(m1.type === 'gun' ? 'shoot' : m1.type === 'shield' ? 'shield' : 'load');
+      updateUI();
+
+      setTimeout(() => evaluateMatch(m1, m2), 100);
+    }
+
+    function evaluateMatch(m1, m2) {
+      let winner = null;
+      let statusText = "Game Continues!";
+
+      // 1. Gun vs Gun
+      if (m1.type === 'gun' && m2.type === 'gun') {
+        if (m1.tier > m2.tier) winner = 'p1';
+        else if (m2.tier > m1.tier) winner = 'p2';
+        else statusText = "Guns cancelled out!";
+      }
+      // 2. Gun vs Shield
+      else if (m1.type === 'gun' && m2.type === 'shield') {
+        if (m1.tier === m2.tier) {
+          statusText = "Shield intercepted the gun!";
+        } else {
+          winner = 'p1'; // Shield failed to match tier
+        }
+      } 
+      else if (m2.type === 'gun' && m1.type === 'shield') {
+        if (m2.tier === m1.tier) {
+          statusText = "Shield intercepted the gun!";
+        } else {
+          winner = 'p2'; // Shield failed to match tier
+        }
+      }
+      // 3. Gun vs Load
+      else if (m1.type === 'gun' && m2.type === 'load') {
+        winner = 'p1';
+      }
+      else if (m2.type === 'gun' && m1.type === 'load') {
+        winner = 'p2';
+      }
+
+      document.getElementById('statusBanner').textContent = statusText;
+
+      if (winner === 'p1') endMatch("YOU WIN!", "Your hand gesture struck the opponent!");
+      else if (winner === 'p2') endMatch("YOU LOST!", "The opponent landed a strike!");
+    }
+
+    function endMatch(title, msg) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalMsg').textContent = msg;
+      document.getElementById('gameOverModal').style.display = 'flex';
+    }
+
+    function resetGame() {
+      p1Loads = 0;
+      p2Loads = 0;
+      document.getElementById('p1Gesture').innerHTML = SVG_TEMPLATES.none;
+      document.getElementById('p2Gesture').innerHTML = SVG_TEMPLATES.none;
+      document.getElementById('statusBanner').textContent = "Choose your hand gesture!";
+      document.getElementById('gameOverModal').style.display = 'none';
+      updateUI();
+    }
+
+    renderSVGs();
+    updateUI();
+  </script>
+</body>
+</html>

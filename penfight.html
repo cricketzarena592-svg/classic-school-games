@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pen Fighter - ClassicSchoolGames</title>
+  <!-- PeerJS CDN for WebRTC Multiplayer Room Codes -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #f4f4f6;
+      --card-bg: #ffffff;
+      --text-color: #1a1a1a;
+      --text-muted: #666666;
+      --accent-color: #ff3366;
+      --border-color: #e0e0e0;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f0f12;
+      --card-bg: #18181c;
+      --text-color: #f0f0f0;
+      --text-muted: #999999;
+      --accent-color: #ff3366;
+      --border-color: #2a2a30;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--text-color);
+    }
+
+    .brand-icon {
+      width: 14px;
+      height: 14px;
+      background-color: var(--accent-color);
+      display: inline-block;
+      box-shadow: 2px 2px 0px var(--text-color);
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover { border-color: var(--accent-color); }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1.5rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .game-card-wrapper {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: var(--shadow);
+      width: 100%;
+      position: relative;
+    }
+
+    .status-panel {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .room-badge {
+      background: rgba(255, 51, 102, 0.15);
+      color: var(--accent-color);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    #turnStatus {
+      color: var(--accent-color);
+      font-weight: 700;
+    }
+
+    .panel-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .action-btn {
+      background-color: var(--accent-color);
+      color: #ffffff;
+      border: none;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .action-btn:hover { opacity: 0.9; }
+
+    #gameCanvas {
+      background-color: #ba8c59;
+      border: 12px solid #523821;
+      border-radius: 8px;
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.3);
+      cursor: crosshair;
+      touch-action: none;
+      max-width: 100%;
+    }
+
+    .instructions {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      border-radius: 12px;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 90%;
+      max-width: 440px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      text-align: left;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .form-group select, .form-group input {
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: none;
+    }
+
+    .primary-btn {
+      background-color: var(--accent-color);
+      color: #ffffff;
+    }
+
+    .secondary-btn {
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .secondary-btn:hover { border-color: var(--accent-color); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="brand">
+      <span class="brand-icon"></span>
+      ClassicSchoolGames
+    </a>
+    <div class="controls-right">
+      <button class="btn" id="themeToggle" aria-label="Toggle Theme">
+        <span id="themeLabel">System Mode</span>
+      </button>
+      <a href="index.html" class="btn">← Dashboard</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="game-card-wrapper">
+      <div class="status-panel">
+        <div>
+          <span id="turnStatus">Player 1's Turn</span>
+          <span class="room-badge" id="roomCodeDisplay">Local Lobby</span>
+        </div>
+        <div class="panel-controls">
+          <button class="action-btn" id="customizeBtn">🖋️ Loadout & Mode</button>
+          <button class="action-btn" id="roomBtn">🌐 Room Code</button>
+          <button class="action-btn" id="resetBtn">Reset Desk</button>
+        </div>
+      </div>
+
+      <canvas id="gameCanvas" width="850" height="480"></canvas>
+
+      <p class="instructions">
+        💡 Drag back on your active pen to set flick force & trajectory. Last pen on table wins!
+      </p>
+
+      <!-- Game Over Modal -->
+      <div class="modal-overlay" id="gameOverModal">
+        <div class="modal-card">
+          <h2 class="modal-title" id="modalHeaderTitle">GAME OVER</h2>
+          <p id="winnerText" style="color: var(--text-muted); font-size: 0.95rem;"></p>
+          <div class="modal-actions">
+            <button class="modal-btn primary-btn" id="playAgainBtn">Play Again</button>
+            <button class="modal-btn secondary-btn" id="shareResultBtn">Share Result</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pen Customization Modal -->
+      <div class="modal-overlay" id="customizationModal">
+        <div class="modal-card">
+          <h2 class="modal-title">Customization & Mode</h2>
+          <div class="form-group">
+            <label>Pen Cap Style</label>
+            <select id="penCapSelect">
+              <option value="standard">Standard Cap (Balanced)</option>
+              <option value="heavy">Heavy Gel Cap (+Mass, -Speed)</option>
+              <option value="aerodynamic">Needle Tip (+Speed, -Mass)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Pen Color</label>
+            <input type="color" id="penColorInput" value="#0055ff">
+          </div>
+          <div class="form-group">
+            <label>Players Count</label>
+            <select id="gameModeSelect">
+              <option value="2p">2 Players Pass & Play</option>
+              <option value="3p">3 Players Free-For-All</option>
+              <option value="4p">4 Players Free-For-All</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn primary-btn" id="saveCustomizationBtn">Save & Reset Desk</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Room Code Modal -->
+      <div class="modal-overlay" id="roomModal">
+        <div class="modal-card">
+          <h2 class="modal-title">Live Multiplayer Room</h2>
+          <p style="font-size:0.85rem; color:var(--text-muted);">Enter a room code or host a new room to play live across devices!</p>
+          <div class="form-group">
+            <label>Room Code</label>
+            <input type="text" id="roomCodeInput" placeholder="e.g. DESK99" style="text-transform:uppercase;">
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn secondary-btn" id="hostRoomBtn">Host Room</button>
+            <button class="modal-btn primary-btn" id="joinRoomBtn">Join Room</button>
+          </div>
+          <button class="modal-btn secondary-btn" id="closeRoomBtn" style="margin-top:0.5rem;">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /* Web Audio API Synthesizer */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playFlickSound(power) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(120 + power * 15, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    }
+
+    function playHitSound(impact) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(80 + Math.min(impact * 10, 200), audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
+    }
+
+    function playOutSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.35);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+    }
+
+    /* Theme Controls */
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeLabel.textContent = 'Dark Mode';
+      } else if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeLabel.textContent = 'Light Mode';
+      } else {
+        const isSystemDark = systemPrefersDark.matches;
+        document.documentElement.setAttribute('data-theme', isSystemDark ? 'dark' : 'light');
+        themeLabel.textContent = `System (${isSystemDark ? 'Dark' : 'Light'})`;
+      }
+    }
+    let currentPreference = localStorage.getItem('themePreference') || 'system';
+    themeToggleBtn.addEventListener('click', () => {
+      currentPreference = currentPreference === 'system' ? 'dark' : currentPreference === 'dark' ? 'light' : 'system';
+      localStorage.setItem('themePreference', currentPreference);
+      applyTheme(currentPreference);
+    });
+    applyTheme(currentPreference);
+
+    /* Pen Class & Rendering */
+    class Pen {
+      constructor(x, y, angle, color, name, id, capStyle = 'standard') {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.angle = angle;
+        this.va = 0;
+        this.length = 130;
+        this.width = 14;
+        this.color = color;
+        this.name = name;
+        this.id = id;
+        this.radius = 28;
+        this.capStyle = capStyle;
+        this.isEliminated = false;
+
+        this.mass = capStyle === 'heavy' ? 1.4 : capStyle === 'aerodynamic' ? 0.8 : 1.0;
+        this.friction = capStyle === 'aerodynamic' ? 0.975 : 0.965;
+      }
+
+      update() {
+        if (this.isEliminated) return;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.angle += this.va;
+
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.va *= 0.88;
+
+        if (Math.hypot(this.vx, this.vy) < 0.08) { this.vx = 0; this.vy = 0; }
+        if (Math.abs(this.va) < 0.001) this.va = 0;
+      }
+
+      draw(ctx) {
+        if (this.isEliminated) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        const halfL = this.length / 2;
+        const halfW = this.width / 2;
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+        ctx.beginPath();
+        ctx.roundRect(-halfL + 5, -halfW + 5, this.length, this.width, 4);
+        ctx.fill();
+
+        // Main Barrel
+        ctx.fillStyle = 'rgba(240, 240, 255, 0.85)';
+        ctx.strokeStyle = 'rgba(180, 180, 200, 0.8)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(-halfL, -halfW, this.length - 25, this.width, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Ink Tube
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-halfL + 10, -2, this.length - 45, 4);
+
+        // Metallic Tip
+        ctx.fillStyle = '#d0d0d5';
+        ctx.beginPath();
+        ctx.moveTo(halfL - 25, -halfW);
+        ctx.lineTo(halfL - 8, -2.5);
+        ctx.lineTo(halfL - 8, 2.5);
+        ctx.lineTo(halfL - 25, halfW);
+        ctx.closePath();
+        ctx.fill();
+
+        // Visible Pen Caps
+        if (this.capStyle === 'heavy') {
+          ctx.fillStyle = '#111';
+          ctx.fillRect(-halfL - 12, -halfW - 3, 30, this.width + 6);
+          ctx.fillStyle = this.color;
+          ctx.fillRect(-halfL + 8, -halfW - 5, 8, this.width + 10);
+        } else if (this.capStyle === 'aerodynamic') {
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.moveTo(-halfL + 20, -halfW - 2);
+          ctx.lineTo(-halfL - 18, 0);
+          ctx.lineTo(-halfL + 20, halfW + 2);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          // Standard Cap
+          ctx.fillStyle = this.color;
+          ctx.fillRect(-halfL - 8, -halfW - 1, 28, this.width + 2);
+          ctx.fillStyle = '#a0a0a5';
+          ctx.fillRect(-halfL + 2, -halfW - 4, 16, 3);
+        }
+
+        ctx.restore();
+      }
+
+      isOffTable(width, height) {
+        return (this.x < -20 || this.x > width + 20 || this.y < -20 || this.y > height + 20);
+      }
+    }
+
+    /* Core Game State */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const turnStatus = document.getElementById('turnStatus');
+    const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+    
+    let pens = [];
+    let turnIndex = 0;
+    let isDragging = false;
+    let dragStart, dragCurrent, gameOver = false, lastMatchResult = '';
+    let gameMode = '2p';
+
+    /* PeerJS Connectivity */
+    let peer = null, peerConn = null;
+
+    function initDesk() {
+      pens = [];
+      const userColor = document.getElementById('penColorInput').value;
+      const userCap = document.getElementById('penCapSelect').value;
+      const userName = localStorage.getItem('csg_username') || 'Player 1';
+
+      if (gameMode === '3p') {
+        pens.push(new Pen(200, 150, 0, userColor, userName, 1, userCap));
+        pens.push(new Pen(650, 150, Math.PI, '#ff3333', 'Player 2', 2));
+        pens.push(new Pen(425, 380, -Math.PI / 2, '#33cc66', 'Player 3', 3));
+      } else if (gameMode === '4p') {
+        pens.push(new Pen(180, 140, 0, userColor, userName, 1, userCap));
+        pens.push(new Pen(670, 140, Math.PI, '#ff3333', 'Player 2', 2));
+        pens.push(new Pen(180, 340, 0, '#33cc66', 'Player 3', 3));
+        pens.push(new Pen(670, 340, Math.PI, '#ff9900', 'Player 4', 4));
+      } else {
+        pens.push(new Pen(180, 240, 0, userColor, userName, 1, userCap));
+        pens.push(new Pen(670, 240, Math.PI, '#ff3333', 'Player 2', 2));
+      }
+
+      turnIndex = 0;
+      isDragging = false;
+      gameOver = false;
+      document.getElementById('gameOverModal').style.display = 'none';
+      updateTurnUI();
+    }
+
+    function isMoving() {
+      return pens.some(p => Math.hypot(p.vx, p.vy) > 0.1);
+    }
+
+    function updateTurnUI() {
+      if (gameOver) return;
+      const active = pens[turnIndex];
+      turnStatus.textContent = `${active.name}'s Turn`;
+    }
+
+    function getMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function startDrag(e) {
+      if (gameOver || isMoving()) return;
+      const activePen = pens[turnIndex];
+
+      const pos = getMousePos(e);
+      if (Math.hypot(pos.x - activePen.x, pos.y - activePen.y) < 60) {
+        isDragging = true;
+        dragStart = { x: activePen.x, y: activePen.y };
+        dragCurrent = pos;
+      }
+    }
+
+    function moveDrag(e) {
+      if (isDragging) dragCurrent = getMousePos(e);
+    }
+
+    function endDrag() {
+      if (!isDragging) return;
+      isDragging = false;
+
+      const activePen = pens[turnIndex];
+      const dx = dragStart.x - dragCurrent.x;
+      const dy = dragStart.y - dragCurrent.y;
+      const pullDist = Math.hypot(dx, dy);
+
+      if (pullDist > 8) {
+        const power = Math.min(pullDist * 0.18, 18);
+        const angle = Math.atan2(dy, dx);
+
+        activePen.vx = Math.cos(angle) * power;
+        activePen.vy = Math.sin(angle) * power;
+        activePen.angle = angle;
+        activePen.va = (Math.random() - 0.5) * 0.04;
+
+        playFlickSound(power);
+        broadcastMove({ penId: activePen.id, vx: activePen.vx, vy: activePen.vy, angle: activePen.angle, va: activePen.va });
+        nextTurn();
+      }
+    }
+
+    function nextTurn() {
+      do {
+        turnIndex = (turnIndex + 1) % pens.length;
+      } while (pens[turnIndex].isEliminated && activeCount() > 1);
+      updateTurnUI();
+    }
+
+    function activeCount() {
+      return pens.filter(p => !p.isEliminated).length;
+    }
+
+    canvas.addEventListener('mousedown', startDrag);
+    canvas.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', endDrag);
+    canvas.addEventListener('touchstart', (e) => { startDrag(e); e.preventDefault(); });
+    canvas.addEventListener('touchmove', (e) => { moveDrag(e); e.preventDefault(); });
+    window.addEventListener('touchend', endDrag);
+
+    function handleCollisions() {
+      for (let i = 0; i < pens.length; i++) {
+        for (let j = i + 1; j < pens.length; j++) {
+          const p1 = pens[i];
+          const p2 = pens[j];
+          if (p1.isEliminated || p2.isEliminated) continue;
+
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const dist = Math.hypot(dx, dy);
+          const minDist = p1.radius + p2.radius;
+
+          if (dist < minDist && dist > 0) {
+            const angle = Math.atan2(dy, dx);
+            const overlap = minDist - dist;
+
+            p1.x -= Math.cos(angle) * overlap * 0.5;
+            p1.y -= Math.sin(angle) * overlap * 0.5;
+            p2.x += Math.cos(angle) * overlap * 0.5;
+            p2.y += Math.sin(angle) * overlap * 0.5;
+
+            const totalSpeed = (Math.hypot(p1.vx, p1.vy) + Math.hypot(p2.vx, p2.vy)) * 0.82;
+            playHitSound(totalSpeed);
+
+            p1.vx = -Math.cos(angle) * (totalSpeed / p1.mass + 2);
+            p1.vy = -Math.sin(angle) * (totalSpeed / p1.mass + 2);
+            p2.vx = Math.cos(angle) * (totalSpeed / p2.mass + 2);
+            p2.vy = Math.sin(angle) * (totalSpeed / p2.mass + 2);
+          }
+        }
+      }
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      pens.forEach(p => p.update());
+      handleCollisions();
+      pens.forEach(p => p.draw(ctx));
+
+      if (isDragging) {
+        const activePen = pens[turnIndex];
+        const dx = dragStart.x - dragCurrent.x;
+        const dy = dragStart.y - dragCurrent.y;
+
+        ctx.beginPath();
+        ctx.moveTo(activePen.x, activePen.y);
+        ctx.lineTo(activePen.x + dx, activePen.y + dy);
+        ctx.strokeStyle = '#ff3366';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 6]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      if (!gameOver) {
+        pens.forEach(p => {
+          if (!p.isEliminated && p.isOffTable(canvas.width, canvas.height)) {
+            p.isEliminated = true;
+            playOutSound();
+          }
+        });
+
+        if (activeCount() <= 1) {
+          gameOver = true;
+          const winner = pens.find(p => !p.isEliminated);
+          const title = winner ? `${winner.name} WINS!` : "DRAW!";
+          lastMatchResult = winner ? `${winner.name} survived the desk!` : "Everyone fell off!";
+          document.getElementById('modalHeaderTitle').textContent = title;
+          document.getElementById('winnerText').textContent = lastMatchResult;
+          document.getElementById('gameOverModal').style.display = 'flex';
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* WebRTC Live Multiplayer Sync */
+    function broadcastMove(data) {
+      if (peerConn && peerConn.open) {
+        peerConn.send({ type: 'MOVE', data: data });
+      }
+    }
+
+    document.getElementById('hostRoomBtn').onclick = () => {
+      const code = 'DESK-' + Math.floor(100 + Math.random() * 900);
+      document.getElementById('roomCodeInput').value = code;
+      peer = new Peer(code);
+      peer.on('open', (id) => {
+        roomCodeDisplay.textContent = `Room: ${id}`;
+        document.getElementById('roomModal').style.display = 'none';
+      });
+      peer.on('connection', (conn) => {
+        peerConn = conn;
+        setupPeerListeners();
+      });
+    };
+
+    document.getElementById('joinRoomBtn').onclick = () => {
+      const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+      if (!code) return;
+      peer = new Peer();
+      peer.on('open', () => {
+        peerConn = peer.connect(code);
+        setupPeerListeners();
+        roomCodeDisplay.textContent = `Room: ${code}`;
+        document.getElementById('roomModal').style.display = 'none';
+      });
+    };
+
+    function setupPeerListeners() {
+      peerConn.on('data', (msg) => {
+        if (msg.type === 'MOVE') {
+          const targetPen = pens.find(p => p.id === msg.data.penId);
+          if (targetPen) {
+            targetPen.vx = msg.data.vx;
+            targetPen.vy = msg.data.vy;
+            targetPen.angle = msg.data.angle;
+            targetPen.va = msg.data.va;
+            playFlickSound(Math.hypot(msg.data.vx, msg.data.vy));
+            nextTurn();
+          }
+        }
+      });
+    }
+
+    /* Modals & UI Event Handlers */
+    document.getElementById('customizeBtn').onclick = () => document.getElementById('customizationModal').style.display = 'flex';
+    document.getElementById('saveCustomizationBtn').onclick = () => {
+      gameMode = document.getElementById('gameModeSelect').value;
+      document.getElementById('customizationModal').style.display = 'none';
+      initDesk();
+    };
+
+    document.getElementById('roomBtn').onclick = () => document.getElementById('roomModal').style.display = 'flex';
+    document.getElementById('closeRoomBtn').onclick = () => document.getElementById('roomModal').style.display = 'none';
+
+    document.getElementById('resetBtn').onclick = initDesk;
+    document.getElementById('playAgainBtn').onclick = initDesk;
+
+    document.getElementById('shareResultBtn').onclick = () => {
+      const shareData = `🖊️ Pen Fighter Result:\nOutcome: ${lastMatchResult}\nPlayed on ClassicSchoolGames!`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareData);
+        document.getElementById('shareResultBtn').textContent = "Copied!";
+        setTimeout(() => document.getElementById('shareResultBtn').textContent = "Share Result", 2000);
+      }
+    };
+
+    initDesk();
+    gameLoop();
+  </script>
+</body>
+</html>

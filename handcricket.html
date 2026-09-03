@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hand Cricket - ClassicSchoolGames</title>
+  <style>
+    :root {
+      --bg-color: #f4f4f6;
+      --card-bg: #ffffff;
+      --text-color: #1a1a1a;
+      --text-muted: #666666;
+      --accent-color: #10b981;
+      --border-color: #e0e0e0;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f0f12;
+      --card-bg: #18181c;
+      --text-color: #f0f0f0;
+      --text-muted: #999999;
+      --accent-color: #10b981;
+      --border-color: #2a2a30;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--text-color);
+    }
+
+    .brand-icon {
+      width: 14px;
+      height: 14px;
+      background-color: var(--accent-color);
+      display: inline-block;
+      box-shadow: 2px 2px 0px var(--text-color);
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover { border-color: var(--accent-color); }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .game-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      box-shadow: var(--shadow);
+      width: 100%;
+      position: relative;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.03);
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .status-banner {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--accent-color);
+      min-height: 28px;
+      text-align: center;
+    }
+
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      min-height: 220px;
+      border: 1px dashed var(--border-color);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+
+    .player-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .player-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .role-badge {
+      background-color: var(--accent-color);
+      color: #fff;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .gesture-display {
+      width: 110px;
+      height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--bg-color);
+      border: 2px solid var(--border-color);
+      padding: 10px;
+    }
+
+    .gesture-display svg {
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: var(--text-color);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .vs-divider {
+      font-weight: 900;
+      font-size: 1.5rem;
+      color: var(--accent-color);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .move-btn {
+      background-color: var(--card-bg);
+      border: 2px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.75rem 0.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .move-btn:hover:not(:disabled) {
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+    }
+
+    .move-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-svg {
+      width: 28px;
+      height: 28px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    /* Custom Modals */
+    .modal-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      border-radius: 12px;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-btn {
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: none;
+      background-color: var(--accent-color);
+      color: #ffffff;
+    }
+
+    .toss-options {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="brand">
+      <span class="brand-icon"></span>
+      ClassicSchoolGames
+    </a>
+    <div class="controls-right">
+      <button class="btn" id="themeToggle">
+        <span id="themeLabel">System Mode</span>
+      </button>
+      <a href="index.html" class="btn">← Dashboard</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="game-card">
+      <div class="scoreboard">
+        <div>Innings: <span id="inningsText">1st</span></div>
+        <div>Target: <span id="targetText">-</span></div>
+        <div>Score: <span id="scoreText">0</span></div>
+      </div>
+
+      <div class="status-banner" id="statusBanner">Choose Heads or Tails for the Toss!</div>
+
+      <div class="arena">
+        <div class="player-box">
+          <span class="player-title">You</span>
+          <span class="role-badge" id="p1Role">Toss</span>
+          <div class="gesture-display" id="p1Gesture"></div>
+        </div>
+
+        <div class="vs-divider">VS</div>
+
+        <div class="player-box">
+          <span class="player-title">Bot</span>
+          <span class="role-badge" id="p2Role">Toss</span>
+          <div class="gesture-display" id="p2Gesture"></div>
+        </div>
+      </div>
+
+      <div class="controls-grid" id="numberControls">
+        <button class="move-btn" id="btn1" onclick="playRun(1)" disabled>
+          <div id="svg-btn-1"></div>
+          <span>1</span>
+        </button>
+        <button class="move-btn" id="btn2" onclick="playRun(2)" disabled>
+          <div id="svg-btn-2"></div>
+          <span>2</span>
+        </button>
+        <button class="move-btn" id="btn3" onclick="playRun(3)" disabled>
+          <div id="svg-btn-3"></div>
+          <span>3</span>
+        </button>
+        <button class="move-btn" id="btn4" onclick="playRun(4)" disabled>
+          <div id="svg-btn-4"></div>
+          <span>4</span>
+        </button>
+        <button class="move-btn" id="btn5" onclick="playRun(5)" disabled>
+          <div id="svg-btn-5"></div>
+          <span>5</span>
+        </button>
+        <button class="move-btn" id="btn6" onclick="playRun(6)" disabled>
+          <div id="svg-btn-6"></div>
+          <span>6</span>
+        </button>
+      </div>
+
+      <!-- Toss Modal -->
+      <div class="modal-overlay" id="tossModal" style="display: flex;">
+        <div class="modal-card">
+          <h2>Toss Time!</h2>
+          <p style="color:var(--text-muted); font-size:0.9rem;">Choose Heads or Tails</p>
+          <div class="toss-options">
+            <button class="modal-btn" onclick="makeTossCall('Heads')">Heads</button>
+            <button class="modal-btn" onclick="makeTossCall('Tails')">Tails</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Modal -->
+      <div class="modal-overlay" id="roleModal">
+        <div class="modal-card">
+          <h2 id="tossResultTitle">You Won the Toss!</h2>
+          <p style="color:var(--text-muted); font-size:0.9rem;">Choose your role to start:</p>
+          <div class="toss-options">
+            <button class="modal-btn" onclick="setRole('Batting')">Bat</button>
+            <button class="modal-btn" onclick="setRole('Bowling')">Bowl</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- General In-App Notification Modal -->
+      <div class="modal-overlay" id="infoModal">
+        <div class="modal-card">
+          <h2 id="infoTitle">NOTIFICATION</h2>
+          <p id="infoMsg" style="color:var(--text-muted); font-size:0.9rem;"></p>
+          <button class="modal-btn" id="infoActionBtn" onclick="closeInfoModal()">Continue</button>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div class="modal-overlay" id="gameOverModal">
+        <div class="modal-card">
+          <h2 id="modalTitle">GAME OVER</h2>
+          <p id="modalMsg" style="color:var(--text-muted); font-size:0.9rem;"></p>
+          <button class="modal-btn" onclick="resetGame()">Play Again</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /* Vector SVG Hand Art for 1 to 6 */
+    const HAND_SVGS = {
+      none: `<svg viewBox="0 0 24 24"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+      1: `<svg viewBox="0 0 24 24"><path d="M12 4v16"/><path d="M12 4l-2 2"/></svg>`,
+      2: `<svg viewBox="0 0 24 24"><path d="M9 4v16M15 4v16"/></svg>`,
+      3: `<svg viewBox="0 0 24 24"><path d="M7 4v16M12 4v16M17 4v16"/></svg>`,
+      4: `<svg viewBox="0 0 24 24"><path d="M6 4v16M10 4v16M14 4v16M18 4v16"/></svg>`,
+      5: `<svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 0 1 2 2v4a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6v-1.5"/></svg>`,
+      6: `<svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 0 1 2 2v4a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6v-1.5"/><path d="M4 10v6"/></svg>`
+    };
+
+    function renderSVGs() {
+      document.getElementById('p1Gesture').innerHTML = HAND_SVGS.none;
+      document.getElementById('p2Gesture').innerHTML = HAND_SVGS.none;
+
+      for (let i = 1; i <= 6; i++) {
+        const btnElem = document.getElementById(`svg-btn-${i}`);
+        if (btnElem) {
+          btnElem.innerHTML = HAND_SVGS[i];
+          const svg = btnElem.querySelector('svg');
+          if (svg) svg.classList.add('btn-svg');
+        }
+      }
+    }
+
+    /* Web Audio Synthesizer */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'hit') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      } else if (type === 'out') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      }
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    /* Theme Toggle */
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeLabel.textContent = 'Dark Mode';
+      } else if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeLabel.textContent = 'Light Mode';
+      } else {
+        const isSystemDark = systemPrefersDark.matches;
+        document.documentElement.setAttribute('data-theme', isSystemDark ? 'dark' : 'light');
+        themeLabel.textContent = `System (${isSystemDark ? 'Dark' : 'Light'})`;
+      }
+    }
+    let currentPreference = localStorage.getItem('themePreference') || 'system';
+    themeToggleBtn.addEventListener('click', () => {
+      currentPreference = currentPreference === 'system' ? 'dark' : currentPreference === 'dark' ? 'light' : 'system';
+      localStorage.setItem('themePreference', currentPreference);
+      applyTheme(currentPreference);
+    });
+    applyTheme(currentPreference);
+
+    /* Custom In-App Modal Dialog Handler */
+    let onModalCloseCallback = null;
+
+    function showInfoModal(title, msg, callback = null) {
+      document.getElementById('infoTitle').textContent = title;
+      document.getElementById('infoMsg').textContent = msg;
+      document.getElementById('infoModal').style.display = 'flex';
+      onModalCloseCallback = callback;
+    }
+
+    function closeInfoModal() {
+      document.getElementById('infoModal').style.display = 'none';
+      if (onModalCloseCallback) {
+        const cb = onModalCloseCallback;
+        onModalCloseCallback = null;
+        cb();
+      }
+    }
+
+    /* Game State */
+    let p1Role = ''; // 'Batting' or 'Bowling'
+    let currentInnings = 1;
+    let currentScore = 0;
+    let targetScore = null;
+
+    function setControlsState(enabled) {
+      for (let i = 1; i <= 6; i++) {
+        document.getElementById(`btn${i}`).disabled = !enabled;
+      }
+    }
+
+    function makeTossCall(call) {
+      document.getElementById('tossModal').style.display = 'none';
+      const tossWin = Math.random() < 0.5;
+
+      if (tossWin) {
+        document.getElementById('tossResultTitle').textContent = `Toss came up ${call}! You Won!`;
+        document.getElementById('roleModal').style.display = 'flex';
+      } else {
+        const botRole = Math.random() < 0.5 ? 'Batting' : 'Bowling';
+        p1Role = botRole === 'Batting' ? 'Bowling' : 'Batting';
+        showInfoModal("TOSS LOST", `Toss came up opposite! Bot chose to ${botRole.toLowerCase()} first.`, () => {
+          startInnings();
+        });
+      }
+    }
+
+    function setRole(role) {
+      p1Role = role;
+      document.getElementById('roleModal').style.display = 'none';
+      startInnings();
+    }
+
+    function startInnings() {
+      document.getElementById('p1Role').textContent = p1Role;
+      document.getElementById('p2Role').textContent = p1Role === 'Batting' ? 'Bowling' : 'Batting';
+      document.getElementById('inningsText').textContent = currentInnings === 1 ? '1st' : '2nd';
+      document.getElementById('targetText').textContent = targetScore !== null ? targetScore : '-';
+      document.getElementById('scoreText').textContent = currentScore;
+      document.getElementById('statusBanner').textContent = p1Role === 'Batting' ? 'You are Batting! Tap a run.' : 'You are Bowling! Try to match the Bot.';
+      setControlsState(true);
+    }
+
+    function playRun(p1Run) {
+      const p2Run = Math.floor(Math.random() * 6) + 1;
+
+      document.getElementById('p1Gesture').innerHTML = HAND_SVGS[p1Run];
+      document.getElementById('p2Gesture').innerHTML = HAND_SVGS[p2Run];
+
+      if (p1Run === p2Run) {
+        // OUT!
+        playSound('out');
+        if (currentInnings === 1) {
+          targetScore = currentScore + 1;
+          showInfoModal("WICKET! OUT!", `1st Innings complete. Score: ${currentScore}. Target for 2nd Innings: ${targetScore}`, () => {
+            currentInnings = 2;
+            currentScore = 0;
+            p1Role = p1Role === 'Batting' ? 'Bowling' : 'Batting';
+            startInnings();
+          });
+        } else {
+          // 2nd Innings OUT
+          evaluateGameResult(false);
+        }
+      } else {
+        // Safe run
+        playSound('hit');
+        const batsmanRun = p1Role === 'Batting' ? p1Run : p2Run;
+        currentScore += batsmanRun;
+        document.getElementById('scoreText').textContent = currentScore;
+
+        if (currentInnings === 2 && currentScore >= targetScore) {
+          evaluateGameResult(true);
+        }
+      }
+    }
+
+    function evaluateGameResult(chaseSuccessful) {
+      setControlsState(false);
+      let title = "";
+      let msg = "";
+
+      if (p1Role === 'Batting') { 
+        if (currentScore >= targetScore) {
+          title = "YOU WIN!";
+          msg = `You successfully chased the target of ${targetScore}!`;
+        } else {
+          title = "YOU LOST!";
+          msg = `You were OUT! Fell short of the target ${targetScore}.`;
+        }
+      } else { 
+        if (currentScore >= targetScore) {
+          title = "YOU LOST!";
+          msg = `Bot chased down your score of ${targetScore - 1}!`;
+        } else {
+          title = "YOU WIN!";
+          msg = `Bot was OUT! Failed to reach target ${targetScore}.`;
+        }
+      }
+
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalMsg').textContent = msg;
+      document.getElementById('gameOverModal').style.display = 'flex';
+    }
+
+    function resetGame() {
+      currentInnings = 1;
+      currentScore = 0;
+      targetScore = null;
+      document.getElementById('p1Gesture').innerHTML = HAND_SVGS.none;
+      document.getElementById('p2Gesture').innerHTML = HAND_SVGS.none;
+      document.getElementById('gameOverModal').style.display = 'none';
+      document.getElementById('tossModal').style.display = 'flex';
+    }
+
+    renderSVGs();
+  </script>
+</body>
+</html>

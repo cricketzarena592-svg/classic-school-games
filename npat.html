@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Name Place Animal Thing - ClassicSchoolGames</title>
+  <style>
+    :root {
+      --bg-color: #f4f4f6;
+      --card-bg: #ffffff;
+      --text-color: #1a1a1a;
+      --text-muted: #666666;
+      --accent-color: #f59e0b;
+      --border-color: #e0e0e0;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f0f12;
+      --card-bg: #18181c;
+      --text-color: #f0f0f0;
+      --text-muted: #999999;
+      --accent-color: #f59e0b;
+      --border-color: #2a2a30;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--text-color);
+    }
+
+    .brand-icon {
+      width: 14px;
+      height: 14px;
+      background-color: var(--accent-color);
+      display: inline-block;
+      box-shadow: 2px 2px 0px var(--text-color);
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover { border-color: var(--accent-color); }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .game-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      box-shadow: var(--shadow);
+      width: 100%;
+      position: relative;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.03);
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .letter-display {
+      font-size: 1.25rem;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .letter-display span {
+      font-size: 2rem;
+      color: var(--accent-color);
+      text-transform: uppercase;
+      margin-left: 0.5rem;
+    }
+
+    .timer-badge {
+      font-size: 1rem;
+      font-weight: 800;
+      background: var(--bg-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      width: 100%;
+    }
+
+    @media (max-width: 600px) {
+      .category-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .category-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      text-align: left;
+    }
+
+    .category-label {
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .category-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-color);
+      font-size: 1rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .category-input:focus {
+      border-color: var(--accent-color);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 0.85rem;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Modal System */
+    .modal-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      border-radius: 12px;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 90%;
+      max-width: 450px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-btn {
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: none;
+      background-color: var(--accent-color);
+      color: #ffffff;
+    }
+
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+    }
+
+    .breakdown-table th, .breakdown-table td {
+      border: 1px solid var(--border-color);
+      padding: 0.5rem;
+      text-align: left;
+    }
+
+    .breakdown-table th {
+      background: var(--bg-color);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="brand">
+      <span class="brand-icon"></span>
+      ClassicSchoolGames
+    </a>
+    <div class="controls-right">
+      <button class="btn" id="themeToggle">
+        <span id="themeLabel">System Mode</span>
+      </button>
+      <a href="index.html" class="btn">← Dashboard</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="game-card">
+      <div class="scoreboard">
+        <div>Round: <span id="roundText">1/3</span></div>
+        <div class="timer-badge">⏱️ <span id="timerText">45</span>s</div>
+        <div>Your Score: <span id="userScoreText">0</span> | Bot: <span id="botScoreText">0</span></div>
+      </div>
+
+      <div class="letter-display">
+        Current Letter: <span id="letterTarget">?</span>
+      </div>
+
+      <form class="category-grid" id="npatForm" onsubmit="submitRound(event)">
+        <div class="category-field">
+          <label class="category-label">👤 Name</label>
+          <input type="text" id="inputName" class="category-input" placeholder="e.g. Alex" autocomplete="off" />
+        </div>
+        <div class="category-field">
+          <label class="category-label">📍 Place</label>
+          <input type="text" id="inputPlace" class="category-input" placeholder="e.g. America" autocomplete="off" />
+        </div>
+        <div class="category-field">
+          <label class="category-label">🦁 Animal</label>
+          <input type="text" id="inputAnimal" class="category-input" placeholder="e.g. Alligator" autocomplete="off" />
+        </div>
+        <div class="category-field">
+          <label class="category-label">📦 Thing</label>
+          <input type="text" id="inputThing" class="category-input" placeholder="e.g. Apple" autocomplete="off" />
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">STOP! Submit Entries</button>
+      </form>
+
+      <!-- Round Summary Modal -->
+      <div class="modal-overlay" id="roundModal">
+        <div class="modal-card">
+          <h2>ROUND SUMMARY</h2>
+          <table class="breakdown-table" id="breakdownTable">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>You</th>
+                <th>Bot</th>
+                <th>Pts</th>
+              </tr>
+            </thead>
+            <tbody id="breakdownBody"></tbody>
+          </table>
+          <button class="modal-btn" onclick="nextRound()">Next Round</button>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div class="modal-overlay" id="gameOverModal">
+        <div class="modal-card">
+          <h2 id="finalTitle">GAME OVER</h2>
+          <p id="finalMsg" style="color:var(--text-muted); font-size:0.9rem;"></p>
+          <button class="modal-btn" onclick="resetGame()">Play Again</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /* Category Word Bank for Bot */
+    const DATABASE = {
+      A: { name: ["ALEX", "ADAM", "ANNA"], place: ["AMERICA", "ARGENTINA", "AUSTRALIA"], animal: ["ALLIGATOR", "ANT", "APE"], thing: ["APPLE", "AXE", "ANCHOR"] },
+      B: { name: ["BEN", "BRYAN", "BELLA"], place: ["BRAZIL", "BERLIN", "BELGIUM"], animal: ["BEAR", "BIRD", "BEE"], thing: ["BALL", "BOOK", "BOX"] },
+      C: { name: ["CHRIS", "CHARLIE", "CLARA"], place: ["CANADA", "CHINA", "CUBA"], animal: ["CAT", "COW", "CAMEL"], thing: ["CAR", "CHAIR", "CLOCK"] },
+      D: { name: ["DAVID", "DAN", "DIANA"], place: ["DENMARK", "DUBAI", "DELHI"], animal: ["DOG", "DEER", "DUCK"], thing: ["DOOR", "DESK", "DRUM"] },
+      E: { name: ["ERIC", "EMMA", "ETHAN"], place: ["EGYPT", "ENGLAND", "ESTONIA"], animal: ["ELEPHANT", "EAGLE", "ELK"], thing: ["EGG", "ERASER", "ENGINE"] },
+      F: { name: ["FRANK", "FIONA", "FELIX"], place: ["FRANCE", "FINLAND", "FIJI"], animal: ["FOX", "FROG", "FISH"], thing: ["FAN", "FORK", "FEATHER"] },
+      G: { name: ["GEORGE", "GRACE", "GABRIEL"], place: ["GERMANY", "GREECE", "GEORGIA"], animal: ["GIRAFFE", "GOAT", "GORILLA"], thing: ["GLASS", "GUITAR", "GLOVES"] },
+      H: { name: ["HARRY", "HANNAH", "HENRY"], place: ["HUNGARY", "HAWAII", "HAITI"], animal: ["HORSE", "HIPPO", "HAWK"], thing: ["HAT", "HAMMER", "HELMET"] },
+      I: { name: ["IAN", "ISABELLA", "IVAN"], place: ["INDIA", "ITALY", "ICELAND"], animal: ["IGUANA", "IMPALA", "INSECT"], thing: ["INK", "IRON", "ICE"] },
+      J: { name: ["JACK", "JOHN", "JULIA"], place: ["JAPAN", "JAMAICA", "JORDAN"], animal: ["JAGUAR", "JELLYFISH", "JACKAL"], thing: ["JAR", "JACKET", "JUG"] },
+      K: { name: ["KEVIN", "KATE", "KENNY"], place: ["KENYA", "KOREA", "KUWAIT"], animal: ["KANGAROO", "KOALA", "KINGFISHER"], thing: ["KEY", "KITE", "KNIFE"] },
+      L: { name: ["LEO", "LUCY", "LUKE"], place: ["LONDON", "LAOS", "LIBYA"], animal: ["LION", "LEOPARD", "LIZARD"], thing: ["LAMP", "LOCK", "LEAF"] },
+      M: { name: ["MARK", "MARY", "MIKE"], place: ["MEXICO", "MADRID", "MUMBAI"], animal: ["MONKEY", "MOUSE", "MOOSE"], thing: ["MAP", "MIRROR", "MAGNET"] },
+      N: { name: ["NICK", "NINA", "NOAH"], place: ["NEPAL", "NORWAY", "NIGERIA"], animal: ["NEWT", "NIGHTINGALE", "NARWHAL"], thing: ["NOTEBOOK", "NEEDLE", "NET"] },
+      O: { name: ["OLIVER", "OLIVIA", "OWEN"], place: ["OMAN", "OHIO", "OSLO"], animal: ["OWL", "OSTRICH", "OCTOPUS"], thing: ["OVEN", "OIL", "ORGAN"] },
+      P: { name: ["PAUL", "PETER", "PENNY"], place: ["PARIS", "PERU", "POLAND"], animal: ["PANDA", "PARROT", "PIG"], thing: ["PEN", "PENCIL", "PAPER"] },
+      R: { name: ["RYAN", "ROSE", "RICK"], place: ["ROME", "RUSSIA", "ROMANIA"], animal: ["RABBIT", "RAT", "RHINO"], thing: ["RING", "ROPE", "RADIO"] },
+      S: { name: ["SAM", "SARAH", "STEVE"], place: ["SPAIN", "SWEDEN", "SEOUL"], animal: ["SNAKE", "SHARK", "SEAL"], thing: ["SPOON", "SHOES", "SOAP"] },
+      T: { name: ["TOM", "TINA", "TYLER"], place: ["TOKYO", "TEXAS", "TURKEY"], animal: ["TIGER", "TURTLE", "TOAD"], thing: ["TABLE", "TELEPHONE", "TOY"] }
+    };
+
+    /* Web Audio Synthesizer */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'tick') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+      } else if (type === 'finish') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      }
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    /* Theme Toggle */
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeLabel.textContent = 'Dark Mode';
+      } else if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeLabel.textContent = 'Light Mode';
+      } else {
+        const isSystemDark = systemPrefersDark.matches;
+        document.documentElement.setAttribute('data-theme', isSystemDark ? 'dark' : 'light');
+        themeLabel.textContent = `System (${isSystemDark ? 'Dark' : 'Light'})`;
+      }
+    }
+    let currentPreference = localStorage.getItem('themePreference') || 'system';
+    themeToggleBtn.addEventListener('click', () => {
+      currentPreference = currentPreference === 'system' ? 'dark' : currentPreference === 'dark' ? 'light' : 'system';
+      localStorage.setItem('themePreference', currentPreference);
+      applyTheme(currentPreference);
+    });
+    applyTheme(currentPreference);
+
+    /* Game State Variables */
+    let currentRound = 1;
+    const maxRounds = 3;
+    let currentLetter = "";
+    let userTotalScore = 0;
+    let botTotalScore = 0;
+    let timer = 45;
+    let timerInterval = null;
+
+    const availableLetters = Object.keys(DATABASE);
+
+    function startRound() {
+      currentLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+      document.getElementById('letterTarget').textContent = currentLetter;
+      document.getElementById('roundText').textContent = `${currentRound}/${maxRounds}`;
+
+      document.getElementById('inputName').value = "";
+      document.getElementById('inputPlace').value = "";
+      document.getElementById('inputAnimal').value = "";
+      document.getElementById('inputThing').value = "";
+
+      timer = 45;
+      document.getElementById('timerText').textContent = timer;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timer--;
+        document.getElementById('timerText').textContent = timer;
+        if (timer <= 5 && timer > 0) playSound('tick');
+        if (timer <= 0) {
+          clearInterval(timerInterval);
+          submitRound();
+        }
+      }, 1000);
+    }
+
+    function submitRound(e) {
+      if (e) e.preventDefault();
+      clearInterval(timerInterval);
+      playSound('finish');
+
+      const userInputs = {
+        name: document.getElementById('inputName').value.trim().toUpperCase(),
+        place: document.getElementById('inputPlace').value.trim().toUpperCase(),
+        animal: document.getElementById('inputAnimal').value.trim().toUpperCase(),
+        thing: document.getElementById('inputThing').value.trim().toUpperCase()
+      };
+
+      // Generate Bot Inputs
+      const botData = DATABASE[currentLetter];
+      const botInputs = {
+        name: botData.name[Math.floor(Math.random() * botData.name.length)],
+        place: botData.place[Math.floor(Math.random() * botData.place.length)],
+        animal: botData.animal[Math.floor(Math.random() * botData.animal.length)],
+        thing: botData.thing[Math.floor(Math.random() * botData.thing.length)]
+      };
+
+      // Calculate Scores
+      const categories = ['name', 'place', 'animal', 'thing'];
+      let roundUserScore = 0;
+      let roundBotScore = 0;
+      const breakdownBody = document.getElementById('breakdownBody');
+      breakdownBody.innerHTML = "";
+
+      categories.forEach(cat => {
+        const uVal = userInputs[cat];
+        const bVal = botInputs[cat];
+
+        let uPts = 0;
+        let bPts = 0;
+
+        const uValid = uVal.length > 0 && uVal[0] === currentLetter;
+        const bValid = bVal.length > 0 && bVal[0] === currentLetter;
+
+        if (uValid && bValid) {
+          if (uVal === bVal) {
+            uPts = 5; // Same answer -> 5 pts
+            bPts = 5;
+          } else {
+            uPts = 10; // Unique valid answer -> 10 pts
+            bPts = 10;
+          }
+        } else if (uValid && !bValid) {
+          uPts = 10;
+          bPts = 0; // Empty/Invalid -> 0 pts
+        } else if (!uValid && bValid) {
+          uPts = 0;
+          bPts = 10;
+        }
+
+        roundUserScore += uPts;
+        roundBotScore += bPts;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight:700; text-transform:capitalize;">${cat}</td>
+          <td>${uVal || '-'} (${uPts}p)</td>
+          <td>${bVal} (${bPts}p)</td>
+          <td>${uPts} / ${bPts}</td>
+        `;
+        breakdownBody.appendChild(tr);
+      });
+
+      userTotalScore += roundUserScore;
+      botTotalScore += roundBotScore;
+
+      document.getElementById('userScoreText').textContent = userTotalScore;
+      document.getElementById('botScoreText').textContent = botTotalScore;
+
+      document.getElementById('roundModal').style.display = 'flex';
+    }
+
+    function nextRound() {
+      document.getElementById('roundModal').style.display = 'none';
+      if (currentRound < maxRounds) {
+        currentRound++;
+        startRound();
+      } else {
+        // Game Over
+        let title = "";
+        let msg = "";
+
+        if (userTotalScore > botTotalScore) {
+          title = "YOU WIN!";
+          msg = `Final Score: You (${userTotalScore}) - Bot (${botTotalScore})`;
+        } else if (userTotalScore < botTotalScore) {
+          title = "YOU LOST!";
+          msg = `Final Score: You (${userTotalScore}) - Bot (${botTotalScore})`;
+        } else {
+          title = "IT'S A TIE!";
+          msg = `Both scored ${userTotalScore} points!`;
+        }
+
+        document.getElementById('finalTitle').textContent = title;
+        document.getElementById('finalMsg').textContent = msg;
+        document.getElementById('gameOverModal').style.display = 'flex';
+      }
+    }
+
+    function resetGame() {
+      currentRound = 1;
+      userTotalScore = 0;
+      botTotalScore = 0;
+      document.getElementById('userScoreText').textContent = "0";
+      document.getElementById('botScoreText').textContent = "0";
+      document.getElementById('gameOverModal').style.display = 'none';
+      startRound();
+    }
+
+    startRound();
+  </script>
+</body>
+</html>
