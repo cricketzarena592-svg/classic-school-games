@@ -149,32 +149,12 @@
       align-items: center;
       gap: 0.4rem;
       box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      text-decoration: none;
     }
 
     .eraser-btn:active {
       transform: translateY(3px);
       border-bottom-width: 3px;
-    }
-
-    .chalk-btn {
-      background: transparent;
-      border: 2px solid var(--chalk-white);
-      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
-      color: var(--chalk-white);
-      padding: 0.35rem 0.85rem;
-      cursor: pointer;
-      font-family: var(--font-chalk-hand);
-      font-size: 1.1rem;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.2s ease;
-    }
-
-    .chalk-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      transform: scale(1.05);
     }
 
     /* Game Wrapper */
@@ -347,6 +327,24 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
+    .toast {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #c29b68;
+      color: #2b1a0e;
+      border: 2px solid #5c3a21;
+      padding: 0.6rem 1.4rem;
+      border-radius: 20px;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.2rem;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 200;
+    }
+
     /* Wooden Tray at Bottom Frame */
     .chalk-tray {
       height: 18px;
@@ -378,13 +376,13 @@
       <header>
         <a href="index.html" class="brand">
           <span class="brand-icon"></span>
-          ClassicSchoolGames
+          Pen Fighter
         </a>
         <div class="controls-right">
           <button class="eraser-btn" id="themeToggle">
             <span>🧹</span> <span id="themeLabel">Board Color</span>
           </button>
-          <a href="index.html" class="chalk-btn">← Dashboard</a>
+          <a href="index.html" class="eraser-btn">← Dashboard</a>
         </div>
       </header>
 
@@ -392,11 +390,11 @@
         <div class="status-panel">
           <div>
             <span id="turnStatus">Player 1's Turn</span>
-            <span class="room-badge" id="roomCodeDisplay">Local Lobby</span>
+            <span class="room-badge" id="roomCodeDisplay">Local Pass & Play</span>
           </div>
           <div class="panel-controls">
             <button class="action-btn" id="customizeBtn" style="border-color: var(--chalk-pink);">🖋️ Loadout & Mode</button>
-            <button class="action-btn" id="roomBtn" style="border-color: var(--chalk-blue);">🌐 Room Code</button>
+            <button class="action-btn" id="roomBtn" style="border-color: var(--chalk-blue);">🌐 Live Room Code</button>
             <button class="action-btn" id="resetBtn" style="border-color: var(--chalk-yellow);">Reset Desk</button>
           </div>
         </div>
@@ -436,7 +434,7 @@
               <input type="color" id="penColorInput" value="#0055ff">
             </div>
             <div class="form-group">
-              <label>Players Count</label>
+              <label>Players Count (Local Mode)</label>
               <select id="gameModeSelect">
                 <option value="2p">2 Players Pass & Play</option>
                 <option value="3p">3 Players Free-For-All</option>
@@ -456,7 +454,7 @@
             <p style="font-size:1rem; color:var(--chalk-white); font-family: var(--font-chalk-sub);">Enter a room code or host a new room to play live across devices!</p>
             <div class="form-group">
               <label>Room Code</label>
-              <input type="text" id="roomCodeInput" placeholder="e.g. DESK99" style="text-transform:uppercase;">
+              <input type="text" id="roomCodeInput" placeholder="e.g. PF99" style="text-transform:uppercase;" maxlength="6">
             </div>
             <div class="modal-actions">
               <button class="modal-btn secondary-btn" id="hostRoomBtn">Host Room</button>
@@ -478,6 +476,8 @@
       <div class="chalk-piece" style="background: var(--chalk-blue);"></div>
     </div>
   </div>
+
+  <div class="toast" id="toastMsg">Copied!</div>
 
   <script>
     /* Web Audio API Synthesizer */
@@ -526,6 +526,14 @@
       gain.connect(audioCtx.destination);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.35);
+    }
+
+    /* Toast Helper */
+    function showToast(msg) {
+      const toast = document.getElementById('toastMsg');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
     }
 
     /* Eraser Theme Controls */
@@ -667,30 +675,35 @@
     let dragStart, dragCurrent, gameOver = false, lastMatchResult = '';
     let gameMode = '2p';
 
-    /* PeerJS Connectivity */
+    /* PeerJS Connectivity & Multiplayer State */
     let peer = null, peerConn = null;
+    let isOnlineMode = false;
+    let isHost = false;
+    let myPlayerId = 1; // 1 for Host, 2 for Joiner
 
-    function initDesk() {
+    function initDesk(broadcast = true) {
       pens = [];
       const userColor = document.getElementById('penColorInput').value;
       const userCap = document.getElementById('penCapSelect').value;
 
-      // Extract player name from URL query parameter if present
-      const urlParams = new URLSearchParams(window.location.search);
-      const userName = urlParams.get('user') || localStorage.getItem('csg_username') || 'Player 1';
-
-      if (gameMode === '3p') {
-        pens.push(new Pen(200, 150, 0, userColor, userName, 1, userCap));
-        pens.push(new Pen(650, 150, Math.PI, '#ff3333', 'Player 2', 2));
-        pens.push(new Pen(425, 380, -Math.PI / 2, '#33cc66', 'Player 3', 3));
-      } else if (gameMode === '4p') {
-        pens.push(new Pen(180, 140, 0, userColor, userName, 1, userCap));
-        pens.push(new Pen(670, 140, Math.PI, '#ff3333', 'Player 2', 2));
-        pens.push(new Pen(180, 340, 0, '#33cc66', 'Player 3', 3));
-        pens.push(new Pen(670, 340, Math.PI, '#ff9900', 'Player 4', 4));
+      if (isOnlineMode) {
+        // Player 1 (Host) and Player 2 (Joiner)
+        pens.push(new Pen(180, 240, 0, isHost ? userColor : '#0055ff', isHost ? 'You (P1)' : 'Host (P1)', 1, isHost ? userCap : 'standard'));
+        pens.push(new Pen(670, 240, Math.PI, !isHost ? userColor : '#ff3333', !isHost ? 'You (P2)' : 'Opponent (P2)', 2, !isHost ? userCap : 'standard'));
       } else {
-        pens.push(new Pen(180, 240, 0, userColor, userName, 1, userCap));
-        pens.push(new Pen(670, 240, Math.PI, '#ff3333', 'Player 2', 2));
+        if (gameMode === '3p') {
+          pens.push(new Pen(200, 150, 0, userColor, 'Player 1', 1, userCap));
+          pens.push(new Pen(650, 150, Math.PI, '#ff3333', 'Player 2', 2));
+          pens.push(new Pen(425, 380, -Math.PI / 2, '#33cc66', 'Player 3', 3));
+        } else if (gameMode === '4p') {
+          pens.push(new Pen(180, 140, 0, userColor, 'Player 1', 1, userCap));
+          pens.push(new Pen(670, 140, Math.PI, '#ff3333', 'Player 2', 2));
+          pens.push(new Pen(180, 340, 0, '#33cc66', 'Player 3', 3));
+          pens.push(new Pen(670, 340, Math.PI, '#ff9900', 'Player 4', 4));
+        } else {
+          pens.push(new Pen(180, 240, 0, userColor, 'Player 1', 1, userCap));
+          pens.push(new Pen(670, 240, Math.PI, '#ff3333', 'Player 2', 2));
+        }
       }
 
       turnIndex = 0;
@@ -698,6 +711,10 @@
       gameOver = false;
       document.getElementById('gameOverModal').style.display = 'none';
       updateTurnUI();
+
+      if (broadcast && isOnlineMode && peerConn && peerConn.open) {
+        peerConn.send({ type: 'RESET_DESK' });
+      }
     }
 
     function isMoving() {
@@ -707,7 +724,12 @@
     function updateTurnUI() {
       if (gameOver) return;
       const active = pens[turnIndex];
-      turnStatus.textContent = `${active.name}'s Turn`;
+      if (isOnlineMode) {
+        const isMyTurn = active.id === myPlayerId;
+        turnStatus.textContent = isMyTurn ? `Your Turn (${active.name})` : `Waiting for Opponent (${active.name})...`;
+      } else {
+        turnStatus.textContent = `${active.name}'s Turn`;
+      }
     }
 
     function getMousePos(e) {
@@ -723,6 +745,11 @@
     function startDrag(e) {
       if (gameOver || isMoving()) return;
       const activePen = pens[turnIndex];
+
+      // Security/Control Fix: Lock input if playing online and active pen is NOT yours
+      if (isOnlineMode && activePen.id !== myPlayerId) {
+        return;
+      }
 
       const pos = getMousePos(e);
       if (Math.hypot(pos.x - activePen.x, pos.y - activePen.y) < 60) {
@@ -755,7 +782,7 @@
         activePen.va = (Math.random() - 0.5) * 0.04;
 
         playFlickSound(power);
-        broadcastMove({ penId: activePen.id, vx: activePen.vx, vy: activePen.vy, angle: activePen.angle, va: activePen.va });
+        broadcastMove({ penId: activePen.id, vx: activePen.vx, vy: activePen.vy, angle: activePen.angle, va: activePen.va, x: activePen.x, y: activePen.y });
         nextTurn();
       }
     }
@@ -844,7 +871,10 @@
         if (activeCount() <= 1) {
           gameOver = true;
           const winner = pens.find(p => !p.isEliminated);
-          const title = winner ? `${winner.name} WINS!` : "DRAW!";
+          let title = "DRAW!";
+          if (winner) {
+            title = (isOnlineMode && winner.id === myPlayerId) ? "VICTORY!" : `${winner.name} WINS!`;
+          }
           lastMatchResult = winner ? `${winner.name} survived the desk!` : "Everyone fell off!";
           document.getElementById('modalHeaderTitle').textContent = title;
           document.getElementById('winnerText').textContent = lastMatchResult;
@@ -857,35 +887,76 @@
 
     /* WebRTC Live Multiplayer Sync */
     function broadcastMove(data) {
-      if (peerConn && peerConn.open) {
+      if (isOnlineMode && peerConn && peerConn.open) {
         peerConn.send({ type: 'MOVE', data: data });
       }
     }
 
-    document.getElementById('hostRoomBtn').onclick = () => {
-      const code = 'DESK-' + Math.floor(100 + Math.random() * 900);
-      document.getElementById('roomCodeInput').value = code;
-      peer = new Peer(code);
+    function initHostRoom(code) {
+      if (peer) peer.destroy();
+      isOnlineMode = true;
+      isHost = true;
+      myPlayerId = 1;
+
+      peer = new Peer(`pf_${code}`);
       peer.on('open', (id) => {
-        roomCodeDisplay.textContent = `Room: ${id}`;
+        const cleanCode = id.replace('pf_', '');
+        roomCodeDisplay.textContent = `Room: ${cleanCode}`;
         document.getElementById('roomModal').style.display = 'none';
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', cleanCode);
+        window.history.pushState({}, '', url);
+        navigator.clipboard.writeText(url.href);
+        showToast(`Room Created! Link Copied: ${cleanCode}`);
       });
+
       peer.on('connection', (conn) => {
         peerConn = conn;
         setupPeerListeners();
+        showToast('Opponent Connected!');
+        initDesk();
       });
+
+      peer.on('error', () => {
+        showToast('Room Creation Failed');
+      });
+    }
+
+    function initJoinRoom(code) {
+      if (peer) peer.destroy();
+      isOnlineMode = true;
+      isHost = false;
+      myPlayerId = 2;
+
+      peer = new Peer();
+      peer.on('open', () => {
+        peerConn = peer.connect(`pf_${code}`);
+        setupPeerListeners();
+        roomCodeDisplay.textContent = `Room: ${code}`;
+        document.getElementById('roomModal').style.display = 'none';
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', code);
+        window.history.pushState({}, '', url);
+        showToast(`Joining Room: ${code}`);
+      });
+
+      peer.on('error', () => {
+        showToast('Could not connect to room');
+      });
+    }
+
+    document.getElementById('hostRoomBtn').onclick = () => {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      document.getElementById('roomCodeInput').value = code;
+      initHostRoom(code);
     };
 
     document.getElementById('joinRoomBtn').onclick = () => {
       const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-      if (!code) return;
-      peer = new Peer();
-      peer.on('open', () => {
-        peerConn = peer.connect(code);
-        setupPeerListeners();
-        roomCodeDisplay.textContent = `Room: ${code}`;
-        document.getElementById('roomModal').style.display = 'none';
-      });
+      if (!code) { showToast('Enter Code'); return; }
+      initJoinRoom(code);
     };
 
     function setupPeerListeners() {
@@ -893,6 +964,8 @@
         if (msg.type === 'MOVE') {
           const targetPen = pens.find(p => p.id === msg.data.penId);
           if (targetPen) {
+            targetPen.x = msg.data.x;
+            targetPen.y = msg.data.y;
             targetPen.vx = msg.data.vx;
             targetPen.vy = msg.data.vy;
             targetPen.angle = msg.data.angle;
@@ -900,7 +973,15 @@
             playFlickSound(Math.hypot(msg.data.vx, msg.data.vy));
             nextTurn();
           }
+        } else if (msg.type === 'RESET_DESK') {
+          initDesk(false);
         }
+      });
+
+      peerConn.on('close', () => {
+        showToast('Opponent Disconnected');
+        isOnlineMode = false;
+        roomCodeDisplay.textContent = 'Local Pass & Play';
       });
     }
 
@@ -915,19 +996,29 @@
     document.getElementById('roomBtn').onclick = () => document.getElementById('roomModal').style.display = 'flex';
     document.getElementById('closeRoomBtn').onclick = () => document.getElementById('roomModal').style.display = 'none';
 
-    document.getElementById('resetBtn').onclick = initDesk;
-    document.getElementById('playAgainBtn').onclick = initDesk;
+    document.getElementById('resetBtn').onclick = () => initDesk(true);
+    document.getElementById('playAgainBtn').onclick = () => initDesk(true);
 
     document.getElementById('shareResultBtn').onclick = () => {
       const shareData = `🖊️ Pen Fighter Result:\nOutcome: ${lastMatchResult}\nPlayed on ClassicSchoolGames!`;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(shareData);
-        document.getElementById('shareResultBtn').textContent = "Copied!";
-        setTimeout(() => document.getElementById('shareResultBtn').textContent = "Share Result", 2000);
+        showToast('Result copied to clipboard!');
       }
     };
 
-    initDesk();
+    // Auto Join via URL
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        document.getElementById('roomCodeInput').value = roomParam;
+        initJoinRoom(roomParam);
+      } else {
+        initDesk(false);
+      }
+    });
+
     gameLoop();
   </script>
 </body>
