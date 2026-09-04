@@ -221,6 +221,24 @@
       flex-direction: column; 
       gap: 0.4rem; 
     }
+
+    .toast {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--frame-color);
+      color: var(--text-color);
+      border: 2px solid var(--border-color);
+      padding: 0.6rem 1.4rem;
+      border-radius: 20px;
+      font-family: var(--font-family);
+      font-size: 1.2rem;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 200;
+    }
   </style>
 </head>
 <body>
@@ -288,9 +306,11 @@
     </div>
   </main>
 
+  <div class="toast" id="toastMsg">Notification</div>
+
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const myTag = urlParams.get('user') || localStorage.getItem('csg_username') || 'Player';
+    const myTag = urlParams.get('user') || localStorage.getItem('csg_username') || ('Player_' + Math.floor(100 + Math.random() * 900));
 
     let peer = null;
     let connections = [];
@@ -309,7 +329,15 @@
       { title: '🕵️ THIEF (Chor)', pts: 0, key: 'thief' }
     ];
 
+    function showToast(msg) {
+      const toast = document.getElementById('toastMsg');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+
     function hostGame() {
+      if (peer) peer.destroy();
       const code = Math.floor(1000 + Math.random() * 9000).toString();
       peer = new Peer('csg-tp-' + code);
 
@@ -318,6 +346,14 @@
         myIndex = 0;
         players = [{ id: id, name: myTag }];
         document.getElementById('roomStatus').textContent = `ROOM CODE: ${code}`;
+        
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', code);
+        window.history.pushState({}, '', url);
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url.href);
+          showToast(`Room Code ${code} copied!`);
+        }
         updateLobbyUI();
 
         peer.on('connection', (conn) => {
@@ -329,29 +365,44 @@
             }
             connections.push(conn);
             conn.on('data', (data) => handleHostData(data, conn));
+            conn.on('close', () => handlePeerDisconnect(conn.peer));
           });
         });
       });
 
-      peer.on('error', (err) => alert('Room creation failed: ' + err.type));
+      peer.on('error', (err) => showToast('Room creation failed: ' + err.type));
     }
 
-    function joinGame() {
-      const code = document.getElementById('joinCodeInput').value.trim();
-      if (code.length !== 4) return alert('Enter a 4-digit room code');
+    function joinGame(codeOverride) {
+      const code = codeOverride || document.getElementById('joinCodeInput').value.trim();
+      if (!code || code.length !== 4) return showToast('Enter a valid 4-digit room code');
 
+      if (peer) peer.destroy();
       peer = new Peer();
-      peer.on('open', () => {
+
+      peer.on('open', (myPeerId) => {
         hostConn = peer.connect('csg-tp-' + code);
         
         hostConn.on('open', () => {
-          hostConn.send({ type: 'JOIN', name: myTag });
+          hostConn.send({ type: 'JOIN', name: myTag, peerId: myPeerId });
+          document.getElementById('roomStatus').textContent = `CONNECTED TO ROOM: ${code}`;
         });
 
         hostConn.on('data', (data) => handleClientData(data));
+        hostConn.on('close', () => {
+          showToast('Disconnected from host.');
+          location.reload();
+        });
       });
 
-      peer.on('error', () => alert('Unable to connect to room code.'));
+      peer.on('error', () => showToast('Unable to connect to room code.'));
+    }
+
+    function handlePeerDisconnect(peerId) {
+      players = players.filter(p => p.id !== peerId);
+      connections = connections.filter(c => c.peer !== peerId);
+      updateLobbyUI();
+      broadcastState({ type: 'LOBBY_UPDATE', players: players });
     }
 
     function handleHostData(data, conn) {
@@ -367,7 +418,8 @@
     function handleClientData(data) {
       if (data.type === 'LOBBY_UPDATE') {
         players = data.players;
-        myIndex = players.findIndex(p => p.name === myTag);
+        myIndex = players.findIndex(p => p.id === peer.id);
+        if (myIndex === -1) myIndex = players.findIndex(p => p.name === myTag);
         updateLobbyUI();
       } else if (data.type === 'START_ROUND') {
         scores = data.scores;
@@ -382,12 +434,19 @@
     }
 
     function broadcastState(msg) {
-      connections.forEach(conn => conn.send(msg));
+      connections.forEach(conn => {
+        if (conn.open) conn.send(msg);
+      });
     }
 
     function updateLobbyUI() {
       const list = document.getElementById('playerListDisplay');
-      list.innerHTML = players.map((p, i) => `<li class="player-item"><span>P${i+1}: ${p.name}</span> <span>${i===0?'👑 Host':''}</span></li>`).join('');
+      list.innerHTML = players.map((p, i) => `
+        <li class="player-item">
+          <span>P${i+1}: ${p.name} ${i === myIndex ? '(You)' : ''}</span> 
+          <span>${i===0 ? '👑 Host' : ''}</span>
+        </li>
+      `).join('');
 
       if (isHost) {
         const startBtn = document.getElementById('startGameBtn');
@@ -404,16 +463,19 @@
       const shuffled = [...rolesConfig].sort(() => Math.random() - 0.5);
       window.hostRoundSecret = players.map((p, i) => ({ playerIndex: i, name: p.name, role: shuffled[i] }));
 
-      // Distribute specific roles to each peer privately
+      // Send private role info to each joined peer
       connections.forEach((conn) => {
         const pIdx = players.findIndex(p => p.id === conn.peer);
-        conn.send({
-          type: 'START_ROUND',
-          scores: scores,
-          assignedRole: window.hostRoundSecret[pIdx].role
-        });
+        if (pIdx !== -1) {
+          conn.send({
+            type: 'START_ROUND',
+            scores: scores,
+            assignedRole: window.hostRoundSecret[pIdx].role
+          });
+        }
       });
 
+      // Host local state setup
       mySecretRole = window.hostRoundSecret[0].role;
       setupPlayArea();
 
@@ -427,8 +489,12 @@
       document.getElementById('gamePlayArea').style.display = 'flex';
 
       players.forEach((p, i) => {
-        document.getElementById(`sbP${i}`).textContent = p.name;
-        document.getElementById(`scP${i}`).textContent = scores[i];
+        const nameElem = document.getElementById(`sbP${i}`);
+        const scoreElem = document.getElementById(`scP${i}`);
+        if (nameElem && scoreElem) {
+          nameElem.textContent = p.name;
+          scoreElem.textContent = scores[i] || 0;
+        }
       });
 
       document.getElementById('phaseRole').style.display = 'flex';
@@ -516,9 +582,19 @@
       document.getElementById('roundModal').style.display = 'flex';
 
       players.forEach((p, i) => {
-        document.getElementById(`scP${i}`).textContent = data.scores[i];
+        const scoreElem = document.getElementById(`scP${i}`);
+        if (scoreElem) scoreElem.textContent = data.scores[i];
       });
     }
+
+    // Auto Join via URL
+    window.addEventListener('DOMContentLoaded', () => {
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        document.getElementById('joinCodeInput').value = roomParam;
+        joinGame(roomParam);
+      }
+    });
   </script>
 </body>
 </html>
