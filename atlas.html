@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Fredericka+the+Great&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
       /* Green Chalkboard Theme (Default) */
@@ -207,6 +208,7 @@
       width: 90px;
       text-transform: uppercase;
       outline: none;
+      user-select: text;
     }
 
     .scoreboard {
@@ -287,6 +289,7 @@
       font-family: var(--font-chalk-hand);
       font-size: 1.3rem;
       outline: none;
+      user-select: text;
     }
 
     .place-input:focus {
@@ -431,6 +434,7 @@
         <div class="room-actions" id="roomControls" style="display: none;">
           <button class="toggle-btn" onclick="createRoom()">Create Room</button>
           <input type="text" id="roomCodeInput" class="room-input" placeholder="CODE" maxlength="6" />
+          <button class="toggle-btn" onclick="copyRoomCode()">Copy Code</button>
           <button class="toggle-btn" onclick="joinRoom()">Join</button>
         </div>
       </div>
@@ -502,6 +506,12 @@
       "VENEZUELA", "VIETNAM", "YEMEN", "ZAMBIA", "ZIMBABWE", "AMSTERDAM", "ATHENS", "BANGKOK", "BEIJING", "BERLIN", "DELHI",
       "DUBAI", "ISTANBUL", "LONDON", "MADRID", "MUMBAI", "NEW YORK", "PARIS", "ROME", "SEOUL", "TOKYO", "KERALA", "TEXAS", "CALIFORNIA"
     ];
+
+    /* Helper: Retrieve Player Tag */
+    function getMyTag() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('user') || localStorage.getItem('csg_username') || 'Player1';
+    }
 
     /* Audio Synthesizer */
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -575,50 +585,147 @@
     let requiredLetter = "";
     let isPlayerTurn = true;
     let gameMode = 'bot';
-    let roomChannel = null;
+    let peer = null;
+    let activeConn = null;
     let currentRoomCode = '';
     let isHost = false;
+    let opponentTag = 'Opponent';
     let summaryShareText = '';
+
+    const PEER_PREFIX = 'CSG_ATLAS_';
 
     function switchMode(mode) {
       gameMode = mode;
       document.getElementById('modeBotBtn').classList.toggle('active', mode === 'bot');
       document.getElementById('modeRoomBtn').classList.toggle('active', mode === 'room');
       document.getElementById('roomControls').style.display = mode === 'room' ? 'flex' : 'none';
+      cleanupPeer();
       resetGame();
     }
 
-    function createRoom() {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      document.getElementById('roomCodeInput').value = code;
-      initRoom(code, true);
-      showToast(`Room Created: ${code}`);
+    function cleanupPeer() {
+      if (activeConn) {
+        activeConn.close();
+        activeConn = null;
+      }
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
     }
 
-    function joinRoom() {
-      const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-      if (!code) { showToast('Enter room code'); return; }
-      initRoom(code, false);
-      showToast(`Joined Room: ${code}`);
+    function copyRoomCode() {
+      const inputElem = document.getElementById('roomCodeInput');
+      const code = inputElem.value.trim();
+      if (!code) {
+        showToast('No code to copy');
+        return;
+      }
+      navigator.clipboard.writeText(code).then(() => {
+        showToast(`Code ${code} copied!`);
+      }).catch(() => {
+        showToast(`Code: ${code}`);
+      });
     }
 
-    function initRoom(code, host) {
-      if (roomChannel) roomChannel.close();
-      currentRoomCode = code;
-      isHost = host;
-      roomChannel = new BroadcastChannel(`atlas_room_${code}`);
+    function setupDataConnection(conn) {
+      activeConn = conn;
 
-      roomChannel.onmessage = (e) => {
-        const data = e.data;
-        if (data.type === 'MOVE') {
+      activeConn.on('open', () => {
+        showToast('Peer connected!');
+        activeConn.send({ type: 'TAG_EXCHANGE', tag: getMyTag() });
+        if (isHost) {
+          setTurn(true);
+        }
+      });
+
+      activeConn.on('data', (data) => {
+        if (data.type === 'TAG_EXCHANGE') {
+          opponentTag = data.tag || 'Opponent';
+          if (!isPlayerTurn && gameMode === 'room') {
+            document.getElementById('turnText').textContent = `${opponentTag}'s Turn...`;
+          }
+        } else if (data.type === 'MOVE') {
           processRemoteMove(data.word, data.player);
         } else if (data.type === 'RESET') {
           resetGame(false);
         }
-      };
+      });
+
+      activeConn.on('close', () => {
+        showToast('Peer disconnected');
+        activeConn = null;
+      });
+
+      activeConn.on('error', (err) => {
+        showToast('Connection error');
+      });
+    }
+
+    function createRoom() {
+      cleanupPeer();
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const inputElem = document.getElementById('roomCodeInput');
+      inputElem.value = code;
+      currentRoomCode = code;
+      isHost = true;
+
+      const peerId = PEER_PREFIX + code;
+      peer = new Peer(peerId);
+
+      peer.on('open', () => {
+        showToast(`Room Created: ${code}`);
+      });
+
+      peer.on('connection', (conn) => {
+        setupDataConnection(conn);
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          createRoom();
+        } else {
+          showToast('Failed to create room');
+        }
+      });
 
       resetGame(false);
-      setTurn(isHost);
+      setTurn(false);
+      document.getElementById('turnText').textContent = "Waiting for Opponent...";
+    }
+
+    function joinRoom() {
+      const inputElem = document.getElementById('roomCodeInput');
+      const code = inputElem.value.trim().toUpperCase();
+      if (!code) { showToast('Enter room code'); return; }
+
+      cleanupPeer();
+      currentRoomCode = code;
+      isHost = false;
+
+      peer = new Peer();
+
+      peer.on('open', () => {
+        const hostPeerId = PEER_PREFIX + code;
+        const conn = peer.connect(hostPeerId, { reliable: true });
+
+        conn.on('open', () => {
+          setupDataConnection(conn);
+          showToast(`Joined Room: ${code}`);
+        });
+
+        conn.on('error', () => {
+          showToast('Could not connect to host');
+        });
+      });
+
+      peer.on('error', () => {
+        showToast('Connection failed');
+      });
+
+      resetGame(false);
+      setTurn(false);
+      document.getElementById('turnText').textContent = `${opponentTag}'s Turn...`;
     }
 
     function handlePlayerSubmit(e) {
@@ -649,10 +756,10 @@
       }
 
       playSound('valid');
-      const label = gameMode === 'room' ? (isHost ? 'P1 (You)' : 'P2 (You)') : 'You';
-      addPlaceToHistory(label, word);
+      const myTag = getMyTag();
+      addPlaceToHistory(myTag, word);
       inputElem.value = "";
-      
+
       requiredLetter = word.slice(-1);
       updateBanner();
 
@@ -660,8 +767,8 @@
         setTurn(false);
         setTimeout(botTurn, 1200);
       } else {
-        if (roomChannel) {
-          roomChannel.postMessage({ type: 'MOVE', word: word, player: isHost ? 'P1' : 'P2' });
+        if (activeConn && activeConn.open) {
+          activeConn.send({ type: 'MOVE', word: word, player: myTag });
         }
         setTurn(false);
       }
@@ -695,11 +802,11 @@
     function addPlaceToHistory(player, word) {
       usedPlaces.add(word);
       const historyBox = document.getElementById('historyBox');
-      
+
       const entry = document.createElement('div');
       entry.className = 'history-entry';
       entry.innerHTML = `<span class="entry-player">${player}:</span> <span class="entry-word">${word.toLowerCase()}</span>`;
-      
+
       historyBox.appendChild(entry);
       historyBox.scrollTop = historyBox.scrollHeight;
       document.getElementById('countText').textContent = usedPlaces.size;
@@ -711,7 +818,7 @@
 
     function setTurn(playerTurn) {
       isPlayerTurn = playerTurn;
-      const turnMsg = isPlayerTurn ? "Your Turn" : (gameMode === 'bot' ? "Bot Thinking..." : "Opponent's Turn...");
+      const turnMsg = isPlayerTurn ? "Your Turn" : (gameMode === 'bot' ? "Bot Thinking..." : `${opponentTag}'s Turn...`);
       document.getElementById('turnText').textContent = turnMsg;
       document.getElementById('submitBtn').disabled = !isPlayerTurn;
       document.getElementById('placeInput').disabled = !isPlayerTurn;
@@ -721,7 +828,7 @@
     function endGame(title, msg) {
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalMsg').textContent = msg;
-      
+
       summaryShareText = `🌍 Atlas Game Results:\nResult: ${title}\nPlaces Named: ${usedPlaces.size}\nPlay on ClassicSchoolGames!`;
       document.getElementById('shareResultText').textContent = `${title} | ${usedPlaces.size} Places Named`;
 
@@ -744,8 +851,8 @@
       document.getElementById('countText').textContent = "0";
       document.getElementById('letterBanner').textContent = "Start the game with any place name!";
       document.getElementById('gameOverModal').style.display = 'none';
-      if (broadcast && roomChannel) {
-        roomChannel.postMessage({ type: 'RESET' });
+      if (broadcast && activeConn && activeConn.open) {
+        activeConn.send({ type: 'RESET' });
       }
       setTurn(true);
     }
