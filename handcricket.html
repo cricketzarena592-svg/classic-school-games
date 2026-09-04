@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Fredericka+the+Great&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
       /* Green Chalkboard Theme (Default) */
@@ -207,6 +208,36 @@
       width: 90px;
       text-transform: uppercase;
       outline: none;
+    }
+
+    .peer-status-badge {
+      font-family: var(--font-chalk-hand);
+      font-size: 0.95rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      border: 1px dashed var(--chalk-dim);
+      color: var(--chalk-yellow);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4d4d;
+      display: inline-block;
+    }
+
+    .status-dot.online {
+      background: var(--chalk-green);
+      box-shadow: 0 0 6px var(--chalk-green);
+    }
+
+    .host-crown {
+      color: var(--chalk-yellow);
+      margin-left: 0.2rem;
     }
 
     .scoreboard {
@@ -472,6 +503,10 @@
           <button class="toggle-btn" onclick="createRoom()">Create Room</button>
           <input type="text" id="roomCodeInput" class="room-input" placeholder="CODE" maxlength="6" />
           <button class="toggle-btn" onclick="joinRoom()">Join</button>
+          <span class="peer-status-badge" id="peerStatusBadge">
+            <span class="status-dot" id="peerStatusDot"></span>
+            <span id="peerStatusText">Disconnected</span>
+          </span>
         </div>
       </div>
 
@@ -533,9 +568,9 @@
       <!-- Toss Modal -->
       <div class="modal-overlay" id="tossModal" style="display: flex;">
         <div class="modal-card">
-          <h2>Toss Time!</h2>
-          <p style="font-size:1.1rem; color:var(--chalk-white);">Choose Heads or Tails</p>
-          <div class="toss-options">
+          <h2 id="tossHeading">Toss Time!</h2>
+          <p id="tossSubtext" style="font-size:1.1rem; color:var(--chalk-white);">Choose Heads or Tails</p>
+          <div class="toss-options" id="tossOptionsBox">
             <button class="modal-btn" onclick="makeTossCall('Heads')">Heads</button>
             <button class="modal-btn" onclick="makeTossCall('Tails')">Tails</button>
           </div>
@@ -791,56 +826,161 @@
     let currentScore = 0;
     let targetScore = null;
     let gameMode = 'bot';
-    let roomChannel = null;
-    let currentRoomCode = '';
-    let isHost = false;
     let p1RunChoice = null;
     let p2RunChoice = null;
     let summaryShareText = '';
+
+    /* PeerJS WebRTC Infrastructure */
+    let peer = null;
+    let dataChannel = null;
+    let currentRoomCode = '';
+    let isHost = false;
+    let peerConnected = false;
+
+    function updatePeerStatus(connected, text) {
+      peerConnected = connected;
+      const dot = document.getElementById('peerStatusDot');
+      const label = document.getElementById('peerStatusText');
+      if (dot) dot.classList.toggle('online', connected);
+      if (label) label.textContent = text || (connected ? 'Connected' : 'Waiting...');
+    }
 
     function switchMode(mode) {
       gameMode = mode;
       document.getElementById('modeBotBtn').classList.toggle('active', mode === 'bot');
       document.getElementById('modeRoomBtn').classList.toggle('active', mode === 'room');
       document.getElementById('roomControls').style.display = mode === 'room' ? 'flex' : 'none';
-      document.getElementById('p2Name').textContent = mode === 'bot' ? 'Bot' : 'Player 2';
-      resetGame();
+      
+      if (mode === 'bot') {
+        if (dataChannel) { dataChannel.close(); dataChannel = null; }
+        if (peer) { peer.destroy(); peer = null; }
+        document.getElementById('p1Name').textContent = 'You';
+        document.getElementById('p2Name').textContent = 'Bot';
+        updatePeerStatus(false, 'Disconnected');
+      }
+      resetGame(false);
     }
 
     function createRoom() {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       document.getElementById('roomCodeInput').value = code;
+      
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, true);
-      showToast(`Room Created: ${code}`);
+      navigator.clipboard.writeText(newUrl.href);
+      showToast(`Room Created! Direct Link Copied: ${code}`);
     }
 
     function joinRoom() {
       const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
       if (!code) { showToast('Enter room code'); return; }
+      
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, false);
-      showToast(`Joined Room: ${code}`);
+      showToast(`Joining Room: ${code}`);
     }
 
     function initRoom(code, host) {
-      if (roomChannel) roomChannel.close();
+      if (dataChannel) { dataChannel.close(); dataChannel = null; }
+      if (peer) { peer.destroy(); peer = null; }
+
       currentRoomCode = code;
       isHost = host;
-      roomChannel = new BroadcastChannel(`handcricket_room_${code}`);
+      updatePeerStatus(false, 'Connecting...');
 
-      document.getElementById('p1Name').textContent = isHost ? 'You (P1)' : 'You (P2)';
-      document.getElementById('p2Name').textContent = isHost ? 'Opponent (P2)' : 'Opponent (P1)';
+      document.getElementById('p1Name').innerHTML = isHost ? 'You <span class="host-crown">👑</span>' : 'You';
+      document.getElementById('p2Name').innerHTML = isHost ? 'Opponent' : 'Opponent <span class="host-crown">👑</span>';
 
-      roomChannel.onmessage = (e) => {
-        const data = e.data;
-        if (data.type === 'MOVE') {
-          if (isHost) p2RunChoice = data.run;
-          else p1RunChoice = data.run;
-          checkMultiplayerTurn();
-        } else if (data.type === 'RESET') {
-          resetGame(false);
+      const peerId = isHost ? `handcricket_${code}` : undefined;
+      peer = new Peer(peerId);
+
+      peer.on('open', () => {
+        if (!isHost) {
+          dataChannel = peer.connect(`handcricket_${code}`);
+          bindDataChannelEvents();
         }
-      };
+      });
+
+      peer.on('connection', (conn) => {
+        if (isHost) {
+          dataChannel = conn;
+          bindDataChannelEvents();
+        }
+      });
+
+      peer.on('error', (err) => {
+        showToast('Connection error');
+        updatePeerStatus(false, 'Failed');
+      });
+
       resetGame(false);
+    }
+
+    function bindDataChannelEvents() {
+      dataChannel.on('open', () => {
+        updatePeerStatus(true, 'Connected');
+        showToast('P2P Connection Established!');
+        
+        if (isHost) {
+          document.getElementById('tossHeading').textContent = 'Toss Time!';
+          document.getElementById('tossSubtext').textContent = 'Choose Heads or Tails';
+          document.getElementById('tossOptionsBox').style.display = 'flex';
+          document.getElementById('tossModal').style.display = 'flex';
+
+          sendP2PMessage({
+            type: 'SYNC_STATE',
+            innings: currentInnings,
+            score: currentScore,
+            target: targetScore,
+            p1Role: p1Role
+          });
+        } else {
+          document.getElementById('tossHeading').textContent = 'Toss Time!';
+          document.getElementById('tossSubtext').textContent = 'Waiting for Host to flip the coin...';
+          document.getElementById('tossOptionsBox').style.display = 'none';
+          document.getElementById('tossModal').style.display = 'flex';
+        }
+      });
+
+      dataChannel.on('close', () => {
+        updatePeerStatus(false, 'Disconnected');
+      });
+
+      dataChannel.on('data', (data) => {
+        handleP2PMessage(data);
+      });
+    }
+
+    function sendP2PMessage(msg) {
+      if (dataChannel && dataChannel.open) {
+        dataChannel.send(msg);
+      }
+    }
+
+    function handleP2PMessage(data) {
+      if (data.type === 'MOVE') {
+        if (isHost) p2RunChoice = data.run;
+        else p1RunChoice = data.run;
+        checkMultiplayerTurn();
+      } else if (data.type === 'RESET') {
+        resetGame(false);
+      } else if (data.type === 'TOSS_RESULT') {
+        processTossOutcome(data.winnerIsHost, data.coinResult, data.calledValue);
+      } else if (data.type === 'ROLE_CHOICE') {
+        applyRoleChoice(data.role);
+      } else if (data.type === 'SYNC_STATE') {
+        currentInnings = data.innings;
+        currentScore = data.score;
+        targetScore = data.target;
+        p1Role = data.p1Role === 'Batting' ? 'Bowling' : 'Batting';
+        if (currentInnings > 1 || p1Role) startInnings();
+      }
     }
 
     function setControlsState(enabled) {
@@ -850,24 +990,62 @@
     }
 
     function makeTossCall(call) {
-      document.getElementById('tossModal').style.display = 'none';
-      const tossWin = Math.random() < 0.5;
+      if (gameMode === 'room') {
+        if (!peerConnected) { showToast('Waiting for opponent connection...'); return; }
+        if (!isHost) return;
 
-      if (tossWin) {
-        document.getElementById('tossResultTitle').textContent = `Toss came up ${call}! You Won!`;
+        const coinResult = Math.random() < 0.5 ? 'Heads' : 'Tails';
+        const hostWon = call === coinResult;
+
+        sendP2PMessage({ 
+          type: 'TOSS_RESULT', 
+          winnerIsHost: hostWon,
+          coinResult: coinResult,
+          calledValue: call
+        });
+
+        processTossOutcome(hostWon, coinResult, call);
+      } else {
+        document.getElementById('tossModal').style.display = 'none';
+        const tossWin = Math.random() < 0.5;
+
+        if (tossWin) {
+          document.getElementById('tossResultTitle').textContent = `Toss came up ${call}! You Won!`;
+          document.getElementById('roleModal').style.display = 'flex';
+        } else {
+          const botRole = Math.random() < 0.5 ? 'Batting' : 'Bowling';
+          p1Role = botRole === 'Batting' ? 'Bowling' : 'Batting';
+          showInfoModal("TOSS LOST", `Toss came up opposite! Opponent chose to ${botRole.toLowerCase()} first.`, () => {
+            startInnings();
+          });
+        }
+      }
+    }
+
+    function processTossOutcome(winnerIsHost, coinResult, calledValue) {
+      document.getElementById('tossModal').style.display = 'none';
+      const userIsWinner = (isHost && winnerIsHost) || (!isHost && !winnerIsHost);
+
+      if (userIsWinner) {
+        document.getElementById('tossResultTitle').textContent = `Coin was ${coinResult}! You Won the Toss!`;
         document.getElementById('roleModal').style.display = 'flex';
       } else {
-        const botRole = Math.random() < 0.5 ? 'Batting' : 'Bowling';
-        p1Role = botRole === 'Batting' ? 'Bowling' : 'Batting';
-        showInfoModal("TOSS LOST", `Toss came up opposite! Opponent chose to ${botRole.toLowerCase()} first.`, () => {
-          startInnings();
-        });
+        showInfoModal("TOSS RESULT", `Coin landed on ${coinResult}. Opponent won the toss and is choosing role...`);
       }
     }
 
     function setRole(role) {
       p1Role = role;
       document.getElementById('roleModal').style.display = 'none';
+      if (gameMode === 'room') {
+        sendP2PMessage({ type: 'ROLE_CHOICE', role: role });
+      }
+      startInnings();
+    }
+
+    function applyRoleChoice(chosenRole) {
+      document.getElementById('infoModal').style.display = 'none';
+      p1Role = chosenRole === 'Batting' ? 'Bowling' : 'Batting';
       startInnings();
     }
 
@@ -886,18 +1064,18 @@
         const botRun = Math.floor(Math.random() * 6) + 1;
         processDelivery(run, botRun);
       } else {
-        if (!roomChannel) { showToast('Create/Join a room first'); return; }
+        if (!peerConnected) { showToast('Waiting for P2P connection'); return; }
         if (isHost) p1RunChoice = run;
         else p2RunChoice = run;
 
         document.getElementById('statusBanner').textContent = "Waiting for Opponent run...";
-        roomChannel.postMessage({ type: 'MOVE', run: run });
+        sendP2PMessage({ type: 'MOVE', run: run });
         checkMultiplayerTurn();
       }
     }
 
     function checkMultiplayerTurn() {
-      if (p1RunChoice && p2RunChoice) {
+      if (p1RunChoice !== null && p2RunChoice !== null) {
         processDelivery(p1RunChoice, p2RunChoice);
         p1RunChoice = null;
         p2RunChoice = null;
@@ -983,13 +1161,32 @@
       drawHumanHand(document.getElementById('p1Canvas'), 0);
       drawHumanHand(document.getElementById('p2Canvas'), 0);
       document.getElementById('gameOverModal').style.display = 'none';
-      document.getElementById('tossModal').style.display = 'flex';
-      if (broadcast && roomChannel) {
-        roomChannel.postMessage({ type: 'RESET' });
+
+      if (gameMode === 'bot') {
+        document.getElementById('tossHeading').textContent = 'Toss Time!';
+        document.getElementById('tossSubtext').textContent = 'Choose Heads or Tails';
+        document.getElementById('tossOptionsBox').style.display = 'flex';
+        document.getElementById('tossModal').style.display = 'flex';
+      } else {
+        document.getElementById('tossModal').style.display = 'none';
+      }
+
+      if (broadcast && gameMode === 'room') {
+        sendP2PMessage({ type: 'RESET' });
       }
     }
 
-    renderAllHands();
+    // Auto-join via URL query parameter if present
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAllHands();
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        switchMode('room');
+        document.getElementById('roomCodeInput').value = roomParam;
+        joinRoom();
+      }
+    });
   </script>
 </body>
 </html>
