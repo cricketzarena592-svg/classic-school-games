@@ -3,339 +3,457 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClassicSchoolGames - Dashboard</title>
+  <title>ClassicSchoolGames - Chalkboard Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Fredericka+the+Great&family=Patrick+Hand&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-color: #f4f4f6;
-      --card-bg: #ffffff;
-      --text-color: #1a1a1a;
-      --text-muted: #666666;
-      --accent-color: #ff3366;
-      --border-color: #e0e0e0;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      /* Green Chalkboard Theme (Default) */
+      --board-bg: #1e3b2b;
+      --board-texture: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.3) 100%);
+      --chalk-white: #f8f9fa;
+      --chalk-yellow: #fff3a0;
+      --chalk-green: #a8ffb2;
+      --chalk-blue: #9ee2ff;
+      --chalk-orange: #ffd09e;
+      --chalk-pink: #ffb3d9;
+      --chalk-purple: #e3bfff;
+      --chalk-dim: rgba(248, 249, 250, 0.4);
+      --wood-border: #5c3a21;
+      --wood-inner: #3d2312;
+      --font-chalk-heading: 'Fredericka the Great', cursive;
+      --font-chalk-hand: 'Cabin Sketch', cursive;
+      --font-chalk-sub: 'Patrick Hand', cursive;
     }
 
     [data-theme="dark"] {
-      --bg-color: #0f0f12;
-      --card-bg: #18181c;
-      --text-color: #f0f0f0;
-      --text-muted: #999999;
-      --accent-color: #ff3366;
-      --border-color: #2a2a30;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      /* Black Chalkboard Theme */
+      --board-bg: #17181c;
+      --board-texture: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.5) 100%);
+      --wood-border: #3a2213;
+      --wood-inner: #241308;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      user-select: none;
     }
 
     body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: var(--font-family);
+      background-color: #0b0d0e;
+      background-image: repeating-linear-gradient(45deg, #111 0, #111 10px, #0b0d0e 10px, #0b0d0e 20px);
+      color: var(--chalk-white);
+      font-family: var(--font-chalk-sub);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      overflow-x: hidden;
     }
 
+    /* Wooden Blackboard Frame */
+    .board-frame {
+      width: 100%;
+      max-width: 1150px;
+      background: var(--wood-border);
+      border: 6px solid var(--wood-inner);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 0 10px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    /* Chalkboard Surface */
+    .blackboard {
+      background-color: var(--board-bg);
+      background-image: var(--board-texture);
+      border-radius: 8px;
+      border: 3px dashed rgba(255, 255, 255, 0.15);
+      padding: 2rem;
+      box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+    }
+
+    /* Chalk Dust & Noise Overlay Effect */
+    .blackboard::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 2px, transparent 2px, transparent 4px);
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* Top Chalk Bar / Header */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1.25rem 2rem;
-      background-color: var(--card-bg);
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 2px dashed var(--chalk-dim);
+      padding-bottom: 1rem;
+      position: relative;
+      z-index: 2;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      font-size: 1.25rem;
-      font-weight: 800;
-      text-transform: uppercase;
+      font-family: var(--font-chalk-heading);
+      font-size: 1.8rem;
+      letter-spacing: 2px;
       text-decoration: none;
-      color: var(--text-color);
+      color: var(--chalk-white);
+      text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4), 0 0 2px var(--chalk-white);
     }
 
     .brand-icon {
-      width: 14px;
-      height: 14px;
-      background-color: var(--accent-color);
+      width: 18px;
+      height: 18px;
+      background-color: var(--chalk-yellow);
       display: inline-block;
-      box-shadow: 2px 2px 0px var(--text-color);
+      transform: rotate(-8deg);
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
     }
 
-    .btn {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-color);
-      padding: 0.5rem 0.85rem;
+    /* Chalk Eraser Button for Theme Toggle */
+    .eraser-btn {
+      background: #c29b68;
+      border: 2px solid #5c3a21;
+      border-bottom: 8px solid #3d2312;
+      color: #2b1a0e;
+      padding: 0.4rem 0.9rem;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.1rem;
+      font-weight: 700;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      transition: transform 0.1s ease;
     }
 
-    .btn:hover { border-color: var(--accent-color); }
-
-    main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 2rem;
+    .eraser-btn:active {
+      transform: translateY(4px);
+      border-bottom-width: 4px;
     }
 
-    .dashboard-container {
-      width: 100%;
-      max-width: 1100px;
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 2.5rem 2rem;
-      box-shadow: var(--shadow);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2rem;
+    /* Board Main Header */
+    .title-section {
       text-align: center;
+      position: relative;
+      z-index: 2;
     }
 
-    .dashboard-header {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+    .board-title {
+      font-family: var(--font-chalk-heading);
+      font-size: 2.8rem;
+      color: var(--chalk-yellow);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.6), 0 0 3px var(--chalk-yellow);
+      letter-spacing: 3px;
     }
 
-    .dashboard-title {
-      font-size: 2rem;
-      font-weight: 900;
-      letter-spacing: -0.5px;
+    .board-subtitle {
+      font-family: var(--font-chalk-sub);
+      font-size: 1.2rem;
+      color: var(--chalk-white);
+      opacity: 0.85;
+      margin-top: 0.2rem;
     }
 
-    .dashboard-subtitle {
-      color: var(--text-muted);
-      font-size: 0.95rem;
+    /* Player Tag Input (Chalk Box) */
+    .user-tag-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      border: 2px solid var(--chalk-white);
+      padding: 0.4rem 1.2rem;
+      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px; /* Hand-drawn look */
+      background: rgba(0,0,0,0.15);
+      margin: 0 auto;
+      box-shadow: 0 0 5px var(--chalk-dim);
+      position: relative;
+      z-index: 2;
     }
 
-    /* Strict 3x3 Grid Layout */
+    .user-tag-bar label {
+      font-family: var(--font-chalk-hand);
+      font-size: 1.2rem;
+      letter-spacing: 1px;
+      color: var(--chalk-yellow);
+    }
+
+    .user-tag-bar input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--chalk-green);
+      font-family: var(--font-chalk-hand);
+      font-size: 1.4rem;
+      width: 140px;
+      text-shadow: 0 0 2px var(--chalk-green);
+    }
+
+    /* 3x3 Grid Layout */
     .games-list {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1.25rem;
+      gap: 1.5rem;
       width: 100%;
+      position: relative;
+      z-index: 2;
     }
 
-    /* Responsive adjustments for smaller devices */
     @media (max-width: 850px) {
-      .games-list {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      .games-list { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 550px) {
-      .games-list {
-        grid-template-columns: 1fr;
-      }
+      .games-list { grid-template-columns: 1fr; }
     }
 
+    /* Chalk Card Button */
     .game-launch-btn {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: flex-start;
-      padding: 1.5rem;
-      background-color: var(--bg-color);
-      border: 2px solid var(--border-color);
-      border-radius: 10px;
+      padding: 1.25rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid var(--chalk-color, var(--chalk-white));
+      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px; /* Sketchy hand-drawn border */
       text-decoration: none;
-      color: var(--text-color);
+      color: var(--chalk-white);
       min-height: 140px;
       transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
     }
 
     .game-launch-btn:hover {
-      border-color: var(--accent-color);
-      transform: translateY(-4px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      transform: scale(1.03) rotate(-1deg);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 12px var(--chalk-color, var(--chalk-white));
     }
 
     .game-info {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.4rem;
+      gap: 0.3rem;
       text-align: left;
     }
 
     .game-name {
-      font-size: 1.1rem;
-      font-weight: 800;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--chalk-color, var(--chalk-white));
+      text-shadow: 0 0 3px var(--chalk-color, var(--chalk-white));
     }
 
     .game-tag {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      line-height: 1.3;
+      font-family: var(--font-chalk-sub);
+      font-size: 1rem;
+      color: var(--chalk-white);
+      opacity: 0.8;
+      line-height: 1.2;
     }
 
     .action-row {
       display: flex;
       justify-content: flex-end;
       width: 100%;
-      margin-top: 1rem;
+      margin-top: 0.8rem;
     }
 
     .action-arrow {
-      font-size: 1.2rem;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.6rem;
       font-weight: 800;
-      color: var(--accent-color);
+      color: var(--chalk-color, var(--chalk-white));
+      text-shadow: 0 0 3px var(--chalk-color, var(--chalk-white));
+    }
+
+    /* Chalk Ledge Wooden Tray at Bottom */
+    .chalk-tray {
+      height: 18px;
+      background: #4a2e18;
+      border-top: 3px solid #2b1a0e;
+      border-radius: 0 0 8px 8px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 15px;
+    }
+
+    .chalk-piece {
+      width: 35px;
+      height: 8px;
+      border-radius: 3px;
+      box-shadow: 1px 2px 3px rgba(0,0,0,0.5);
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <a href="index.html" class="brand">
-      <span class="brand-icon"></span>
-      ClassicSchoolGames
-    </a>
-    <button class="btn" id="themeToggle">
-      <span id="themeLabel">System Mode</span>
-    </button>
-  </header>
+  <div class="board-frame">
+    <div class="blackboard">
 
-  <main>
-    <div class="dashboard-container">
-      <div class="dashboard-header">
-        <h1 class="dashboard-title">Game Center</h1>
-        <p class="dashboard-subtitle">Select a classic schoolyard game to start playing</p>
+      <header>
+        <a href="index.html" class="brand">
+          <span class="brand-icon"></span>
+          ClassicSchoolGames
+        </a>
+        <div>
+          <button class="eraser-btn" id="themeToggle">
+            <span>🧹</span> <span id="themeLabel">Board Color</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="title-section">
+        <h1 class="board-title">CLASSROOM GAMES</h1>
+        <p class="board-subtitle">Pick a desk game & start playing!</p>
+      </div>
+
+      <div class="user-tag-bar">
+        <label for="usernameInput">PLAYER TAG:</label>
+        <input type="text" id="usernameInput" maxlength="12" placeholder="Guest" />
       </div>
 
       <div class="games-list">
-        <!-- Row 1 -->
-        <a href="penfight.html" class="game-launch-btn">
+        
+        <div class="game-launch-btn" onclick="launchGame('penfight.html')" style="--chalk-color: var(--chalk-pink);">
           <div class="game-info">
             <span class="game-name">🖋️ Pen Fighter</span>
             <span class="game-tag">Pass & Play / WebRTC Multiplayer</span>
           </div>
-          <div class="action-row">
-            <span class="action-arrow">→</span>
-          </div>
-        </a>
+          <div class="action-row"><span class="action-arrow">→</span></div>
+        </div>
 
-        <a href="matricks.html" class="game-launch-btn" style="--accent-color: #8a2be2;">
+        <div class="game-launch-btn" onclick="launchGame('matricks.html')" style="--chalk-color: var(--chalk-purple);">
           <div class="game-info">
             <span class="game-name">🖐️ Matricks</span>
             <span class="game-tag">Hand Gesture Battle vs Bot</span>
           </div>
-          <div class="action-row">
-            <span class="action-arrow" style="color: #8a2be2;">→</span>
-          </div>
-        </a>
+          <div class="action-row"><span class="action-arrow">→</span></div>
+        </div>
 
-        <a href="handcricket.html" class="game-launch-btn" style="--accent-color: #10b981;">
+        <div class="game-launch-btn" onclick="launchGame('handcricket.html')" style="--chalk-color: var(--chalk-green);">
           <div class="game-info">
             <span class="game-name">🏏 Hand Cricket</span>
             <span class="game-tag">Toss, Bat & Bowl vs Bot</span>
           </div>
-          <div class="action-row">
-            <span class="action-arrow" style="color: #10b981;">→</span>
-          </div>
-        </a>
+          <div class="action-row"><span class="action-arrow">→</span></div>
+        </div>
 
-        <!-- Row 2 -->
-        <a href="atlas.html" class="game-launch-btn" style="--accent-color: #3b82f6;">
+        <div class="game-launch-btn" onclick="launchGame('atlas.html')" style="--chalk-color: var(--chalk-blue);">
           <div class="game-info">
             <span class="game-name">🌍 Atlas</span>
             <span class="game-tag">Place Word-Chain vs Bot</span>
           </div>
-          <div class="action-row">
-            <span class="action-arrow" style="color: #3b82f6;">→</span>
-          </div>
-        </a>
+          <div class="action-row"><span class="action-arrow">→</span></div>
+        </div>
 
-        <a href="npat.html" class="game-launch-btn" style="--accent-color: #f59e0b;">
+        <div class="game-launch-btn" onclick="launchGame('npat.html')" style="--chalk-color: var(--chalk-orange);">
           <div class="game-info">
             <span class="game-name">📝 NPAT</span>
             <span class="game-tag">Category Word Battle vs Bot</span>
           </div>
-          <div class="action-row">
-            <span class="action-arrow" style="color: #f59e0b;">→</span>
-          </div>
-        </a>
+          <div class="action-row"><span class="action-arrow">→</span></div>
+        </div>
 
-        <a href="sps.html" class="game-launch-btn" style="--accent-color: #ec4899;">
+        <div class="game-launch-btn" onclick="launchGame('sps.html')" style="--chalk-color: var(--chalk-yellow);">
           <div class="game-info">
             <span class="game-name">✂️ Stone Paper Scissors</span>
             <span class="game-tag">Classic Hand Showdown vs Bot</span>
           </div>
-          <div class="action-row">
-            <span class="action-arrow" style="color: #ec4899;">→</span>
-          </div>
-        </a>
+          <div class="action-row"><span class="action-arrow">→</span></div>
+        </div>
 
-        <!-- Row 3 Placeholder Slots for Future Games -->
-        <div class="game-launch-btn" style="opacity: 0.4; pointer-events: none;">
+        <div class="game-launch-btn" style="--chalk-color: var(--chalk-dim); opacity: 0.5; cursor: not-allowed;">
           <div class="game-info">
             <span class="game-name">🔒 Slot 7</span>
             <span class="game-tag">Coming Soon</span>
           </div>
         </div>
 
-        <div class="game-launch-btn" style="opacity: 0.4; pointer-events: none;">
+        <div class="game-launch-btn" style="--chalk-color: var(--chalk-dim); opacity: 0.5; cursor: not-allowed;">
           <div class="game-info">
             <span class="game-name">🔒 Slot 8</span>
             <span class="game-tag">Coming Soon</span>
           </div>
         </div>
 
-        <div class="game-launch-btn" style="opacity: 0.4; pointer-events: none;">
+        <div class="game-launch-btn" style="--chalk-color: var(--chalk-dim); opacity: 0.5; cursor: not-allowed;">
           <div class="game-info">
             <span class="game-name">🔒 Slot 9</span>
             <span class="game-tag">Coming Soon</span>
           </div>
         </div>
+
       </div>
+
     </div>
-  </main>
+
+    <div class="chalk-tray">
+      <div class="chalk-piece" style="background: var(--chalk-white);"></div>
+      <div class="chalk-piece" style="background: var(--chalk-yellow);"></div>
+      <div class="chalk-piece" style="background: var(--chalk-pink);"></div>
+      <div class="chalk-piece" style="background: var(--chalk-blue);"></div>
+    </div>
+  </div>
 
   <script>
+    const usernameInput = document.getElementById('usernameInput');
+    const savedUser = localStorage.getItem('csg_username') || 'Player1';
+    usernameInput.value = savedUser;
+
+    usernameInput.addEventListener('input', () => {
+      const val = usernameInput.value.trim() || 'Player1';
+      localStorage.setItem('csg_username', val);
+    });
+
+    function launchGame(page) {
+      const user = usernameInput.value.trim() || 'Player1';
+      window.location.href = `${page}?user=${encodeURIComponent(user)}`;
+    }
+
+    /* Theme Engine - Toggles Green Board / Black Board */
     const themeToggleBtn = document.getElementById('themeToggle');
     const themeLabel = document.getElementById('themeLabel');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
 
     function applyTheme(theme) {
       if (theme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        themeLabel.textContent = 'Dark Mode';
-      } else if (theme === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        themeLabel.textContent = 'Light Mode';
+        themeLabel.textContent = 'Blackboard';
       } else {
-        const isSystemDark = systemPrefersDark.matches;
-        document.documentElement.setAttribute('data-theme', isSystemDark ? 'dark' : 'light');
-        themeLabel.textContent = `System (${isSystemDark ? 'Dark' : 'Light'})`;
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeLabel.textContent = 'Greenboard';
       }
     }
 
-    let currentPreference = localStorage.getItem('themePreference') || 'system';
-    
+    let currentPreference = localStorage.getItem('themePreference') || 'light';
+    applyTheme(currentPreference);
+
     themeToggleBtn.addEventListener('click', () => {
-      currentPreference = currentPreference === 'system' ? 'dark' : currentPreference === 'dark' ? 'light' : 'system';
+      currentPreference = currentPreference === 'light' ? 'dark' : 'light';
       localStorage.setItem('themePreference', currentPreference);
       applyTheme(currentPreference);
     });
-
-    applyTheme(currentPreference);
   </script>
 </body>
 </html>
