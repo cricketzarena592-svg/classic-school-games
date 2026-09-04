@@ -4,119 +4,220 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Matricks - ClassicSchoolGames</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Fredericka+the+Great&family=Patrick+Hand&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-color: #f4f4f6;
-      --card-bg: #ffffff;
-      --text-color: #1a1a1a;
-      --text-muted: #666666;
-      --accent-color: #8a2be2;
-      --border-color: #e0e0e0;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      /* Green Chalkboard Theme (Default) */
+      --board-bg: #1e3b2b;
+      --board-texture: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.3) 100%);
+      --chalk-white: #f8f9fa;
+      --chalk-yellow: #fff3a0;
+      --chalk-green: #a8ffb2;
+      --chalk-blue: #9ee2ff;
+      --chalk-orange: #ffd09e;
+      --chalk-pink: #ffb3d9;
+      --chalk-purple: #e3bfff;
+      --chalk-dim: rgba(248, 249, 250, 0.4);
+      --wood-border: #5c3a21;
+      --wood-inner: #3d2312;
+      --font-chalk-heading: 'Fredericka the Great', cursive;
+      --font-chalk-hand: 'Cabin Sketch', cursive;
+      --font-chalk-sub: 'Patrick Hand', cursive;
     }
 
     [data-theme="dark"] {
-      --bg-color: #0f0f12;
-      --card-bg: #18181c;
-      --text-color: #f0f0f0;
-      --text-muted: #999999;
-      --accent-color: #a855f7;
-      --border-color: #2a2a30;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      /* Black Chalkboard Theme */
+      --board-bg: #17181c;
+      --board-texture: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.5) 100%);
+      --wood-border: #3a2213;
+      --wood-inner: #241308;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      user-select: none;
     }
 
     body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: var(--font-family);
+      background-color: #0b0d0e;
+      background-image: repeating-linear-gradient(45deg, #111 0, #111 10px, #0b0d0e 10px, #0b0d0e 20px);
+      color: var(--chalk-white);
+      font-family: var(--font-chalk-sub);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      overflow-x: hidden;
+    }
+
+    .board-frame {
+      width: 100%;
+      max-width: 900px;
+      background: var(--wood-border);
+      border: 6px solid var(--wood-inner);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 0 10px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .blackboard {
+      background-color: var(--board-bg);
+      background-image: var(--board-texture);
+      border-radius: 8px;
+      border: 3px dashed rgba(255, 255, 255, 0.15);
+      padding: 1.75rem;
+      box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .blackboard::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 2px, transparent 2px, transparent 4px);
+      pointer-events: none;
+      opacity: 0.7;
     }
 
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1.25rem 2rem;
-      background-color: var(--card-bg);
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 2px dashed var(--chalk-dim);
+      padding-bottom: 1rem;
+      position: relative;
+      z-index: 2;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      font-size: 1.25rem;
-      font-weight: 800;
-      text-transform: uppercase;
+      font-family: var(--font-chalk-heading);
+      font-size: 1.5rem;
+      letter-spacing: 2px;
       text-decoration: none;
-      color: var(--text-color);
+      color: var(--chalk-white);
+      text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4), 0 0 2px var(--chalk-white);
     }
 
     .brand-icon {
-      width: 14px;
-      height: 14px;
-      background-color: var(--accent-color);
+      width: 16px;
+      height: 16px;
+      background-color: var(--chalk-purple);
       display: inline-block;
-      box-shadow: 2px 2px 0px var(--text-color);
+      transform: rotate(-8deg);
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
     }
 
     .controls-right {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
     }
 
-    .btn {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-color);
-      padding: 0.5rem 0.85rem;
+    .eraser-btn {
+      background: #c29b68;
+      border: 2px solid #5c3a21;
+      border-bottom: 6px solid #3d2312;
+      color: #2b1a0e;
+      padding: 0.35rem 0.75rem;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-decoration: none;
+      font-family: var(--font-chalk-hand);
+      font-size: 1rem;
+      font-weight: 700;
       display: flex;
       align-items: center;
+      gap: 0.4rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      transition: transform 0.1s ease;
+      text-decoration: none;
+    }
+
+    .eraser-btn:active {
+      transform: translateY(3px);
+      border-bottom-width: 3px;
+    }
+
+    .mode-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 0.6rem 1rem;
+      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+      border: 2px solid var(--chalk-dim);
+      gap: 1rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .mode-toggle {
+      display: flex;
       gap: 0.5rem;
     }
 
-    .btn:hover { border-color: var(--accent-color); }
-
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
-      gap: 1.5rem;
-      max-width: 900px;
-      margin: 0 auto;
-      width: 100%;
+    .toggle-btn {
+      padding: 0.35rem 0.8rem;
+      border: 2px solid var(--chalk-white);
+      background: transparent;
+      color: var(--chalk-white);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.1rem;
+      font-weight: 700;
     }
 
-    .game-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 1.5rem;
+    .toggle-btn.active {
+      background: var(--chalk-purple);
+      color: #1a1a1a;
+      border-color: var(--chalk-purple);
+      text-shadow: none;
+    }
+
+    .room-actions {
       display: flex;
-      flex-direction: column;
+      gap: 0.5rem;
       align-items: center;
-      gap: 1.25rem;
-      box-shadow: var(--shadow);
-      width: 100%;
+    }
+
+    .room-input {
+      padding: 0.3rem 0.6rem;
+      border: 2px solid var(--chalk-purple);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--chalk-purple);
+      font-family: var(--font-chalk-hand);
+      font-size: 1.1rem;
+      font-weight: 700;
+      width: 90px;
+      text-transform: uppercase;
+      outline: none;
+    }
+
+    .status-banner {
+      font-family: var(--font-chalk-hand);
+      font-size: 1.4rem;
+      color: var(--chalk-purple);
+      min-height: 28px;
+      text-align: center;
       position: relative;
+      z-index: 2;
+      text-shadow: 0 0 3px var(--chalk-purple);
     }
 
     .arena {
@@ -124,11 +225,13 @@
       justify-content: space-around;
       align-items: center;
       width: 100%;
-      min-height: 250px;
-      border: 1px dashed var(--border-color);
-      border-radius: 10px;
+      min-height: 240px;
+      border: 2px solid var(--chalk-dim);
+      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
       padding: 1rem;
-      background: rgba(0,0,0,0.02);
+      background: rgba(0,0,0,0.2);
+      position: relative;
+      z-index: 2;
     }
 
     .player-box {
@@ -139,17 +242,19 @@
     }
 
     .player-title {
-      font-weight: 700;
-      font-size: 1rem;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.3rem;
+      color: var(--chalk-white);
     }
 
     .loads-badge {
-      background-color: var(--accent-color);
-      color: #fff;
+      background-color: var(--chalk-purple);
+      color: #1a1a1a;
       padding: 0.2rem 0.6rem;
       border-radius: 20px;
+      font-family: var(--font-chalk-hand);
+      font-size: 1rem;
       font-weight: 700;
-      font-size: 0.85rem;
     }
 
     .gesture-display {
@@ -159,8 +264,8 @@
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      background: var(--bg-color);
-      border: 2px solid var(--border-color);
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px dashed var(--chalk-white);
       padding: 12px;
     }
 
@@ -168,16 +273,18 @@
       width: 100%;
       height: 100%;
       fill: none;
-      stroke: var(--text-color);
+      stroke: var(--chalk-white);
       stroke-width: 2;
       stroke-linecap: round;
       stroke-linejoin: round;
+      filter: drop-shadow(0 0 2px var(--chalk-white));
     }
 
     .vs-divider {
-      font-weight: 900;
-      font-size: 1.5rem;
-      color: var(--accent-color);
+      font-family: var(--font-chalk-heading);
+      font-size: 2rem;
+      color: var(--chalk-yellow);
+      text-shadow: 0 0 4px var(--chalk-yellow);
     }
 
     .controls-grid {
@@ -185,31 +292,37 @@
       grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
       gap: 0.75rem;
       width: 100%;
+      position: relative;
+      z-index: 2;
     }
 
     .move-btn {
-      background-color: var(--card-bg);
-      border: 2px solid var(--border-color);
-      color: var(--text-color);
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 2px solid var(--chalk-purple);
+      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+      color: var(--chalk-purple);
       padding: 0.75rem 0.5rem;
-      border-radius: 8px;
       cursor: pointer;
-      font-weight: 700;
-      font-size: 0.8rem;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.1rem;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.4rem;
+      transition: all 0.2s ease;
     }
 
     .move-btn:hover:not(:disabled) {
-      border-color: var(--accent-color);
-      color: var(--accent-color);
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.05);
+      box-shadow: 0 0 10px var(--chalk-purple);
     }
 
     .move-btn:disabled {
-      opacity: 0.35;
+      opacity: 0.3;
       cursor: not-allowed;
+      border-color: var(--chalk-dim);
+      color: var(--chalk-dim);
     }
 
     .btn-svg {
@@ -220,33 +333,40 @@
       stroke-width: 2;
     }
 
-    .status-banner {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent-color);
-      min-height: 24px;
-      text-align: center;
+    .chalk-tray {
+      height: 18px;
+      background: #4a2e18;
+      border-top: 3px solid #2b1a0e;
+      border-radius: 0 0 8px 8px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 15px;
     }
 
-    /* Modals */
+    .chalk-piece {
+      width: 35px;
+      height: 8px;
+      border-radius: 3px;
+      box-shadow: 1px 2px 3px rgba(0,0,0,0.5);
+    }
+
     .modal-overlay {
       display: none;
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.65);
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(4px);
-      border-radius: 12px;
+      border-radius: 8px;
       justify-content: center;
       align-items: center;
       z-index: 100;
     }
 
     .modal-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
+      background-color: var(--board-bg);
+      border: 3px dashed var(--chalk-white);
       border-radius: 12px;
       padding: 1.75rem;
       width: 90%;
@@ -255,43 +375,92 @@
       display: flex;
       flex-direction: column;
       gap: 1.1rem;
-      box-shadow: var(--shadow);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      color: var(--chalk-white);
+    }
+
+    .modal-card h2 {
+      font-family: var(--font-chalk-heading);
+      color: var(--chalk-yellow);
+      font-size: 2rem;
     }
 
     .modal-btn {
-      padding: 0.65rem 1rem;
+      padding: 0.6rem 1rem;
       border-radius: 6px;
+      font-family: var(--font-chalk-hand);
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 1.1rem;
       cursor: pointer;
       border: none;
-      background-color: var(--accent-color);
-      color: #ffffff;
+      background-color: var(--chalk-purple);
+      color: #1a1a1a;
+    }
+
+    .share-box {
+      background: rgba(0,0,0,0.3);
+      border: 1px dashed var(--chalk-dim);
+      padding: 0.85rem;
+      border-radius: 8px;
+      font-family: var(--font-chalk-sub);
+      font-size: 1rem;
+      word-break: break-all;
+      color: var(--chalk-green);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--board-bg);
+      color: var(--chalk-yellow);
+      border: 2px solid var(--chalk-yellow);
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      font-family: var(--font-chalk-hand);
+      font-size: 1.1rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      display: none;
+      z-index: 200;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <a href="index.html" class="brand">
-      <span class="brand-icon"></span>
-      ClassicSchoolGames
-    </a>
-    <div class="controls-right">
-      <button class="btn" id="themeToggle">
-        <span id="themeLabel">System Mode</span>
-      </button>
-      <a href="index.html" class="btn">← Dashboard</a>
-    </div>
-  </header>
+  <div class="board-frame">
+    <div class="blackboard">
 
-  <main>
-    <div class="game-card">
+      <header>
+        <a href="index.html" class="brand">
+          <span class="brand-icon"></span>
+          ClassicSchoolGames
+        </a>
+        <div class="controls-right">
+          <button class="eraser-btn" id="themeToggle">
+            <span>🧹</span> <span id="themeLabel">Board Color</span>
+          </button>
+          <a href="index.html" class="eraser-btn">← Dashboard</a>
+        </div>
+      </header>
+
+      <div class="mode-bar">
+        <div class="mode-toggle">
+          <button class="toggle-btn active" id="modeBotBtn" onclick="switchMode('bot')">vs Bot</button>
+          <button class="toggle-btn" id="modeRoomBtn" onclick="switchMode('room')">Room Code</button>
+        </div>
+        <div class="room-actions" id="roomControls" style="display: none;">
+          <button class="toggle-btn" onclick="createRoom()">Create Room</button>
+          <input type="text" id="roomCodeInput" class="room-input" placeholder="CODE" maxlength="6" />
+          <button class="toggle-btn" onclick="joinRoom()">Join</button>
+        </div>
+      </div>
+
       <div class="status-banner" id="statusBanner">Choose your hand gesture!</div>
 
       <div class="arena">
         <div class="player-box">
-          <span class="player-title">You</span>
+          <span class="player-title" id="p1Name">You</span>
           <span class="loads-badge" id="p1Loads">0 Loads</span>
           <div class="gesture-display" id="p1Gesture"></div>
         </div>
@@ -299,7 +468,7 @@
         <div class="vs-divider">VS</div>
 
         <div class="player-box">
-          <span class="player-title">Opponent Bot</span>
+          <span class="player-title" id="p2Name">Opponent Bot</span>
           <span class="loads-badge" id="p2Loads">0 Loads</span>
           <div class="gesture-display" id="p2Gesture"></div>
         </div>
@@ -346,13 +515,24 @@
       <div class="modal-overlay" id="gameOverModal">
         <div class="modal-card">
           <h2 id="modalTitle">GAME OVER</h2>
-          <p id="modalMsg" style="color:var(--text-muted); font-size:0.9rem;"></p>
-          <button class="modal-btn" onclick="resetGame()">Play Again</button>
+          <p id="modalMsg" style="font-size:1.1rem; color:var(--chalk-white);"></p>
+          <div class="share-box" id="shareResultText">Match Result Summary</div>
+          <button class="modal-btn" onclick="shareResult()">Share Result 🚀</button>
+          <button class="modal-btn" onclick="resetGame()" style="background:transparent; color:var(--chalk-white); border:2px solid var(--chalk-white);">Play Again</button>
         </div>
       </div>
 
     </div>
-  </main>
+
+    <div class="chalk-tray">
+      <div class="chalk-piece" style="background: var(--chalk-white);"></div>
+      <div class="chalk-piece" style="background: var(--chalk-purple);"></div>
+      <div class="chalk-piece" style="background: var(--chalk-yellow);"></div>
+      <div class="chalk-piece" style="background: var(--chalk-blue);"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastMsg">Copied to clipboard!</div>
 
   <script>
     /* Vector SVG Hand Art */
@@ -413,35 +593,38 @@
       osc.stop(audioCtx.currentTime + 0.2);
     }
 
-    /* Theme Toggle */
+    /* Theme Engine */
     const themeToggleBtn = document.getElementById('themeToggle');
     const themeLabel = document.getElementById('themeLabel');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
 
     function applyTheme(theme) {
       if (theme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        themeLabel.textContent = 'Dark Mode';
-      } else if (theme === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        themeLabel.textContent = 'Light Mode';
+        themeLabel.textContent = 'Blackboard';
       } else {
-        const isSystemDark = systemPrefersDark.matches;
-        document.documentElement.setAttribute('data-theme', isSystemDark ? 'dark' : 'light');
-        themeLabel.textContent = `System (${isSystemDark ? 'Dark' : 'Light'})`;
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeLabel.textContent = 'Greenboard';
       }
     }
-    let currentPreference = localStorage.getItem('themePreference') || 'system';
+    let currentPreference = localStorage.getItem('themePreference') || 'light';
+    applyTheme(currentPreference);
+
     themeToggleBtn.addEventListener('click', () => {
-      currentPreference = currentPreference === 'system' ? 'dark' : currentPreference === 'dark' ? 'light' : 'system';
+      currentPreference = currentPreference === 'light' ? 'dark' : 'light';
       localStorage.setItem('themePreference', currentPreference);
       applyTheme(currentPreference);
     });
-    applyTheme(currentPreference);
 
     /* Game State & Interception Rules */
     let p1Loads = 0;
     let p2Loads = 0;
+    let gameMode = 'bot';
+    let roomChannel = null;
+    let currentRoomCode = '';
+    let isHost = false;
+    let p1Move = null;
+    let p2Move = null;
+    let summaryShareText = '';
 
     const MOVES = {
       load: { name: 'Load', cost: 0, tier: 0, type: 'load' },
@@ -452,6 +635,62 @@
       shoot3: { name: 'Gun (3)', cost: 3, tier: 3, type: 'gun' },
       shield3: { name: 'Shield (3)', cost: 0, tier: 3, type: 'shield' }
     };
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastMsg');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    function switchMode(mode) {
+      gameMode = mode;
+      document.getElementById('modeBotBtn').classList.toggle('active', mode === 'bot');
+      document.getElementById('modeRoomBtn').classList.toggle('active', mode === 'room');
+      document.getElementById('roomControls').style.display = mode === 'room' ? 'flex' : 'none';
+      document.getElementById('p2Name').textContent = mode === 'bot' ? 'Opponent Bot' : 'Player 2';
+      resetGame();
+    }
+
+    function createRoom() {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      document.getElementById('roomCodeInput').value = code;
+      initRoom(code, true);
+      showToast(`Room Created: ${code}`);
+    }
+
+    function joinRoom() {
+      const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+      if (!code) { showToast('Enter room code'); return; }
+      initRoom(code, false);
+      showToast(`Joined Room: ${code}`);
+    }
+
+    function initRoom(code, host) {
+      if (roomChannel) roomChannel.close();
+      currentRoomCode = code;
+      isHost = host;
+      roomChannel = new BroadcastChannel(`matricks_room_${code}`);
+      
+      document.getElementById('p1Name').textContent = isHost ? 'You (P1)' : 'You (P2)';
+      document.getElementById('p2Name').textContent = isHost ? 'Opponent (P2)' : 'Opponent (P1)';
+
+      roomChannel.onmessage = (e) => {
+        const data = e.data;
+        if (data.type === 'MOVE') {
+          if (isHost) {
+            p2Move = data.move;
+            checkMultiplayerTurn();
+          } else {
+            p1Move = data.move;
+            checkMultiplayerTurn();
+          }
+        } else if (data.type === 'RESET') {
+          resetGame(false);
+        }
+      };
+      resetGame(false);
+    }
 
     function updateUI() {
       document.getElementById('p1Loads').textContent = `${p1Loads} Load${p1Loads === 1 ? '' : 's'}`;
@@ -475,7 +714,29 @@
     }
 
     function playTurn(m1Key) {
-      const m2Key = getBotMove();
+      if (gameMode === 'bot') {
+        const m2Key = getBotMove();
+        processRound(m1Key, m2Key);
+      } else {
+        if (!roomChannel) { showToast('Create/Join a room first'); return; }
+        if (isHost) p1Move = m1Key;
+        else p2Move = m1Key;
+
+        document.getElementById('statusBanner').textContent = "Waiting for Opponent move...";
+        roomChannel.postMessage({ type: 'MOVE', move: m1Key });
+        checkMultiplayerTurn();
+      }
+    }
+
+    function checkMultiplayerTurn() {
+      if (p1Move && p2Move) {
+        processRound(p1Move, p2Move);
+        p1Move = null;
+        p2Move = null;
+      }
+    }
+
+    function processRound(m1Key, m2Key) {
       const m1 = MOVES[m1Key];
       const m2 = MOVES[m2Key];
 
@@ -498,54 +759,60 @@
       let winner = null;
       let statusText = "Game Continues!";
 
-      // 1. Gun vs Gun
       if (m1.type === 'gun' && m2.type === 'gun') {
         if (m1.tier > m2.tier) winner = 'p1';
         else if (m2.tier > m1.tier) winner = 'p2';
         else statusText = "Guns cancelled out!";
-      }
-      // 2. Gun vs Shield
-      else if (m1.type === 'gun' && m2.type === 'shield') {
-        if (m1.tier === m2.tier) {
-          statusText = "Shield intercepted the gun!";
-        } else {
-          winner = 'p1'; // Shield failed to match tier
-        }
-      } 
-      else if (m2.type === 'gun' && m1.type === 'shield') {
-        if (m2.tier === m1.tier) {
-          statusText = "Shield intercepted the gun!";
-        } else {
-          winner = 'p2'; // Shield failed to match tier
-        }
-      }
-      // 3. Gun vs Load
-      else if (m1.type === 'gun' && m2.type === 'load') {
+      } else if (m1.type === 'gun' && m2.type === 'shield') {
+        if (m1.tier > m2.tier) winner = 'p1';
+        else statusText = "Shield blocked the gun!";
+      } else if (m1.type === 'shield' && m2.type === 'gun') {
+        if (m2.tier > m1.tier) winner = 'p2';
+        else statusText = "Shield blocked the gun!";
+      } else if (m1.type === 'gun' && m2.type === 'load') {
         winner = 'p1';
-      }
-      else if (m2.type === 'gun' && m1.type === 'load') {
+      } else if (m1.type === 'load' && m2.type === 'gun') {
         winner = 'p2';
       }
 
       document.getElementById('statusBanner').textContent = statusText;
 
-      if (winner === 'p1') endMatch("YOU WIN!", "Your hand gesture struck the opponent!");
-      else if (winner === 'p2') endMatch("YOU LOST!", "The opponent landed a strike!");
+      if (winner) {
+        const p1Won = winner === 'p1';
+        const title = p1Won ? "YOU WIN!" : "YOU LOST!";
+        const msg = p1Won ? `${m1.name} penetrated opponent's defense!` : `Opponent's ${m2.name} eliminated you!`;
+        
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalMsg').textContent = msg;
+
+        summaryShareText = `🖐️ Matricks Results:\nResult: ${title}\nFinal Action: ${m1.name} vs ${m2.name}\nPlay on ClassicSchoolGames!`;
+        document.getElementById('shareResultText').textContent = `${title} | ${m1.name} vs ${m2.name}`;
+
+        document.getElementById('gameOverModal').style.display = 'flex';
+      }
     }
 
-    function endMatch(title, msg) {
-      document.getElementById('modalTitle').textContent = title;
-      document.getElementById('modalMsg').textContent = msg;
-      document.getElementById('gameOverModal').style.display = 'flex';
+    function shareResult() {
+      if (navigator.share) {
+        navigator.share({ title: 'Matricks Result', text: summaryShareText }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(summaryShareText);
+        showToast('Result copied to clipboard!');
+      }
     }
 
-    function resetGame() {
+    function resetGame(broadcast = true) {
       p1Loads = 0;
       p2Loads = 0;
+      p1Move = null;
+      p2Move = null;
       document.getElementById('p1Gesture').innerHTML = SVG_TEMPLATES.none;
       document.getElementById('p2Gesture').innerHTML = SVG_TEMPLATES.none;
       document.getElementById('statusBanner').textContent = "Choose your hand gesture!";
       document.getElementById('gameOverModal').style.display = 'none';
+      if (broadcast && roomChannel) {
+        roomChannel.postMessage({ type: 'RESET' });
+      }
       updateUI();
     }
 
