@@ -56,7 +56,6 @@
       overflow-x: hidden;
     }
 
-    /* Wooden Blackboard Frame */
     .board-frame {
       width: 100%;
       max-width: 900px;
@@ -68,7 +67,6 @@
       position: relative;
     }
 
-    /* Chalkboard Surface */
     .blackboard {
       background-color: var(--board-bg);
       background-image: var(--board-texture);
@@ -82,7 +80,6 @@
       gap: 1.5rem;
     }
 
-    /* Chalk Dust Overlay */
     .blackboard::before {
       content: "";
       position: absolute;
@@ -92,7 +89,6 @@
       opacity: 0.7;
     }
 
-    /* Header */
     header {
       display: flex;
       justify-content: space-between;
@@ -130,7 +126,6 @@
       gap: 0.75rem;
     }
 
-    /* Chalk Eraser Button */
     .eraser-btn {
       background: #c29b68;
       border: 2px solid #5c3a21;
@@ -182,7 +177,6 @@
       width: 100%;
     }
 
-    /* Mode & Room Controls Bar */
     .mode-bar {
       display: flex;
       justify-content: space-between;
@@ -236,6 +230,36 @@
       width: 100px;
       text-transform: uppercase;
       outline: none;
+    }
+
+    .peer-status-badge {
+      font-family: var(--font-chalk-hand);
+      font-size: 0.95rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      border: 1px dashed var(--chalk-dim);
+      color: var(--chalk-yellow);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4d4d;
+      display: inline-block;
+    }
+
+    .status-dot.online {
+      background: var(--chalk-green);
+      box-shadow: 0 0 6px var(--chalk-green);
+    }
+
+    .host-crown {
+      color: var(--chalk-yellow);
+      margin-left: 0.2rem;
     }
 
     .scoreboard {
@@ -338,14 +362,10 @@
       background-color: var(--chalk-yellow);
     }
 
-    /* Chalkboard Modal System */
     .modal-overlay {
       display: none;
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(3px);
       border-radius: 8px;
@@ -437,7 +457,6 @@
       z-index: 200;
     }
 
-    /* Chalk Ledge Wooden Tray */
     .chalk-tray {
       height: 18px;
       background: #4a2e18;
@@ -486,6 +505,10 @@
             <button class="toggle-btn" onclick="createRoom()">Create Room</button>
             <input type="text" id="roomCodeInput" class="room-input" placeholder="CODE" maxlength="6" />
             <button class="toggle-btn" onclick="joinRoom()">Join</button>
+            <span class="peer-status-badge" id="peerStatusBadge">
+              <span class="status-dot" id="peerStatusDot"></span>
+              <span id="peerStatusText">Disconnected</span>
+            </span>
           </div>
         </div>
 
@@ -651,14 +674,33 @@
     let timer = 45;
     let timerInterval = null;
     let gameMode = 'bot';
-    let roomChannel = null;
-    let currentRoomCode = '';
-    let isHost = false;
     let p1SubmittedInputs = null;
     let p2SubmittedInputs = null;
     let summaryShareText = '';
 
+    /* Peer-to-Peer / WebRTC Multiplayer Infrastructure */
+    let roomChannel = null;
+    let peerConnection = null;
+    let dataChannel = null;
+    let currentRoomCode = '';
+    let isHost = false;
+    let peerConnected = false;
+    let localPeerId = Math.random().toString(36).substring(2, 9);
+    let remotePeerId = null;
+
+    const rtcConfig = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
+
     const availableLetters = Object.keys(DATABASE);
+
+    function updatePeerStatus(connected, text) {
+      peerConnected = connected;
+      const dot = document.getElementById('peerStatusDot');
+      const label = document.getElementById('peerStatusText');
+      if (dot) dot.classList.toggle('online', connected);
+      if (label) label.textContent = text || (connected ? 'Connected' : 'Waiting...');
+    }
 
     function switchMode(mode) {
       gameMode = mode;
@@ -667,49 +709,161 @@
       document.getElementById('roomControls').style.display = mode === 'room' ? 'flex' : 'none';
       document.getElementById('p2LabelText').textContent = mode === 'bot' ? 'Bot' : 'P2';
       document.getElementById('thP2Name').textContent = mode === 'bot' ? 'Bot' : 'P2';
-      resetGame();
+      
+      if (mode === 'bot') {
+        if (roomChannel) { roomChannel.close(); roomChannel = null; }
+        if (peerConnection) { peerConnection.close(); peerConnection = null; }
+        updatePeerStatus(false, 'Disconnected');
+      }
+      resetGame(false);
     }
 
     function createRoom() {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       document.getElementById('roomCodeInput').value = code;
+
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, true);
-      showToast(`Room Created: ${code}`);
+      navigator.clipboard.writeText(newUrl.href);
+      showToast(`Room Created! Direct Link Copied: ${code}`);
     }
 
     function joinRoom() {
       const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
       if (!code) { showToast('Enter room code'); return; }
+
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, false);
-      showToast(`Joined Room: ${code}`);
+      showToast(`Joining Room: ${code}`);
     }
 
     function initRoom(code, host) {
       if (roomChannel) roomChannel.close();
+      if (peerConnection) peerConnection.close();
+
       currentRoomCode = code;
       isHost = host;
-      roomChannel = new BroadcastChannel(`npat_room_${code}`);
+      updatePeerStatus(false, 'Connecting...');
 
-      roomChannel.onmessage = (e) => {
+      roomChannel = new BroadcastChannel(`npat_room_${code}`);
+      
+      roomChannel.onmessage = async (e) => {
         const data = e.data;
-        if (data.type === 'LETTER' && !isHost) {
-          currentLetter = data.letter;
-          setupRoundUI();
-        } else if (data.type === 'SUBMIT') {
-          if (isHost) p2SubmittedInputs = data.inputs;
-          else p1SubmittedInputs = data.inputs;
-          checkMultiplayerRound();
-        } else if (data.type === 'RESET') {
-          resetGame(false);
+        if (data.targetId && data.targetId !== localPeerId) return;
+
+        if (data.type === 'PEER_JOIN' && isHost) {
+          remotePeerId = data.senderId;
+          setupPeerConnection();
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          roomChannel.postMessage({
+            type: 'SIGNAL_OFFER',
+            senderId: localPeerId,
+            targetId: remotePeerId,
+            sdp: offer
+          });
+        } else if (data.type === 'SIGNAL_OFFER' && !isHost) {
+          remotePeerId = data.senderId;
+          setupPeerConnection();
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          roomChannel.postMessage({
+            type: 'SIGNAL_ANSWER',
+            senderId: localPeerId,
+            targetId: remotePeerId,
+            sdp: answer
+          });
+        } else if (data.type === 'SIGNAL_ANSWER' && isHost) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        } else if (data.type === 'ICE_CANDIDATE') {
+          if (peerConnection) {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(err){}
+          }
         }
       };
+
+      if (!isHost) {
+        roomChannel.postMessage({ type: 'PEER_JOIN', senderId: localPeerId });
+      }
       resetGame(false);
+    }
+
+    function setupPeerConnection() {
+      peerConnection = new RTCPeerConnection(rtcConfig);
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && roomChannel) {
+          roomChannel.postMessage({
+            type: 'ICE_CANDIDATE',
+            senderId: localPeerId,
+            targetId: remotePeerId,
+            candidate: event.candidate
+          });
+        }
+      };
+
+      if (isHost) {
+        dataChannel = peerConnection.createDataChannel('gameData');
+        bindDataChannelEvents();
+      } else {
+        peerConnection.ondatachannel = (event) => {
+          dataChannel = event.channel;
+          bindDataChannelEvents();
+        };
+      }
+    }
+
+    function bindDataChannelEvents() {
+      dataChannel.onopen = () => {
+        updatePeerStatus(true, 'Connected');
+        showToast('P2P Connection Established!');
+        if (isHost) {
+          startRound();
+        }
+      };
+
+      dataChannel.onclose = () => {
+        updatePeerStatus(false, 'Disconnected');
+      };
+
+      dataChannel.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        handleP2PMessage(data);
+      };
+    }
+
+    function sendP2PMessage(msg) {
+      if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify(msg));
+      }
+    }
+
+    function handleP2PMessage(data) {
+      if (data.type === 'LETTER') {
+        currentLetter = data.letter;
+        setupRoundUI();
+      } else if (data.type === 'SUBMIT') {
+        if (isHost) p2SubmittedInputs = data.inputs;
+        else p1SubmittedInputs = data.inputs;
+        checkMultiplayerRound();
+      } else if (data.type === 'RESET') {
+        resetGame(false);
+      }
     }
 
     function startRound() {
       if (gameMode === 'bot' || isHost) {
         currentLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
-        if (roomChannel) roomChannel.postMessage({ type: 'LETTER', letter: currentLetter });
+        if (gameMode === 'room') {
+          sendP2PMessage({ type: 'LETTER', letter: currentLetter });
+        }
       }
       setupRoundUI();
     }
@@ -763,12 +917,11 @@
         };
         evaluateRound(userInputs, botInputs);
       } else {
+        if (!peerConnected) { showToast('Waiting for P2P connection'); return; }
         if (isHost) p1SubmittedInputs = userInputs;
         else p2SubmittedInputs = userInputs;
 
-        if (roomChannel) {
-          roomChannel.postMessage({ type: 'SUBMIT', inputs: userInputs });
-        }
+        sendP2PMessage({ type: 'SUBMIT', inputs: userInputs });
         checkMultiplayerRound();
       }
     }
@@ -842,25 +995,17 @@
         currentRound++;
         startRound();
       } else {
-        let title = "";
-        let msg = "";
-
-        if (userTotalScore > botTotalScore) {
-          title = "YOU WIN!";
-          msg = `Final Score: You (${userTotalScore}) - Opponent (${botTotalScore})`;
-        } else if (userTotalScore < botTotalScore) {
-          title = "YOU LOST!";
-          msg = `Final Score: You (${userTotalScore}) - Opponent (${botTotalScore})`;
-        } else {
-          title = "IT'S A TIE!";
-          msg = `Both scored ${userTotalScore} points!`;
-        }
+        const userWon = userTotalScore > botTotalScore;
+        const draw = userTotalScore === botTotalScore;
+        const title = draw ? "IT'S A DRAW!" : (userWon ? "YOU WIN!" : "YOU LOST!");
+        const p2Label = gameMode === 'bot' ? 'Bot' : 'P2';
+        const msg = `Final Scores -> You: ${userTotalScore} | ${p2Label}: ${botTotalScore}`;
 
         document.getElementById('finalTitle').textContent = title;
         document.getElementById('finalMsg').textContent = msg;
 
-        summaryShareText = `✏️ Name Place Animal Thing Results:\nResult: ${title}\nYour Score: ${userTotalScore}\nOpponent: ${botTotalScore}\nPlay on ClassicSchoolGames!`;
-        document.getElementById('shareResultText').textContent = `${title} | You: ${userTotalScore} - Opponent: ${botTotalScore}`;
+        summaryShareText = `✏️ Name Place Animal Thing Results:\nResult: ${title}\nScores: You ${userTotalScore} - ${botTotalScore} ${p2Label}\nPlay on ClassicSchoolGames!`;
+        document.getElementById('shareResultText').textContent = `${title} | Score: ${userTotalScore}-${botTotalScore}`;
 
         document.getElementById('gameOverModal').style.display = 'flex';
       }
@@ -868,7 +1013,7 @@
 
     function shareResult() {
       if (navigator.share) {
-        navigator.share({ title: 'NPAT Game Result', text: summaryShareText }).catch(() => {});
+        navigator.share({ title: 'NPAT Result', text: summaryShareText }).catch(() => {});
       } else {
         navigator.clipboard.writeText(summaryShareText);
         showToast('Result copied to clipboard!');
@@ -881,16 +1026,30 @@
       botTotalScore = 0;
       p1SubmittedInputs = null;
       p2SubmittedInputs = null;
+
       document.getElementById('userScoreText').textContent = "0";
       document.getElementById('botScoreText').textContent = "0";
+      document.getElementById('roundModal').style.display = 'none';
       document.getElementById('gameOverModal').style.display = 'none';
-      if (broadcast && roomChannel) {
-        roomChannel.postMessage({ type: 'RESET' });
+
+      if (broadcast && gameMode === 'room') {
+        sendP2PMessage({ type: 'RESET' });
       }
       startRound();
     }
 
-    startRound();
+    // Auto-join via URL query parameter if present
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        switchMode('room');
+        document.getElementById('roomCodeInput').value = roomParam;
+        joinRoom();
+      } else {
+        startRound();
+      }
+    });
   </script>
 </body>
 </html>
