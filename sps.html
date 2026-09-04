@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Fredericka+the+Great&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
       /* Green Chalkboard Theme (Default) */
@@ -147,6 +148,7 @@
       gap: 0.4rem;
       box-shadow: 0 4px 10px rgba(0,0,0,0.4);
       transition: transform 0.1s ease;
+      text-decoration: none;
     }
 
     .eraser-btn:active {
@@ -238,6 +240,36 @@
       outline: none;
     }
 
+    .peer-status-badge {
+      font-family: var(--font-chalk-hand);
+      font-size: 0.95rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      border: 1px dashed var(--chalk-dim);
+      color: var(--chalk-yellow);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4d4d;
+      display: inline-block;
+    }
+
+    .status-dot.online {
+      background: var(--chalk-green);
+      box-shadow: 0 0 6px var(--chalk-green);
+    }
+
+    .host-crown {
+      color: var(--chalk-yellow);
+      margin-left: 0.2rem;
+    }
+
     .scoreboard {
       display: flex;
       justify-content: space-around;
@@ -318,10 +350,16 @@
       color: var(--chalk-white);
     }
 
-    .choice-btn:hover {
+    .choice-btn:hover:not(:disabled) {
       border-color: var(--chalk-yellow);
       transform: translateY(-4px) scale(1.05);
       box-shadow: 0 0 10px var(--chalk-yellow);
+    }
+
+    .choice-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      border-color: var(--chalk-dim);
     }
 
     .choice-label {
@@ -444,7 +482,7 @@
           <button class="eraser-btn" id="themeToggle">
             <span>🧹</span> <span id="themeLabel">Board Color</span>
           </button>
-          <a href="index.html" class="chalk-link-btn">← Dashboard</a>
+          <a href="index.html" class="eraser-btn">← Dashboard</a>
         </div>
       </header>
 
@@ -458,6 +496,10 @@
             <button class="toggle-btn" onclick="createRoom()">Create Room</button>
             <input type="text" id="roomCodeInput" class="room-input" placeholder="CODE" maxlength="6" />
             <button class="toggle-btn" onclick="joinRoom()">Join</button>
+            <span class="peer-status-badge" id="peerStatusBadge">
+              <span class="status-dot" id="peerStatusDot"></span>
+              <span id="peerStatusText">Disconnected</span>
+            </span>
           </div>
         </div>
 
@@ -484,15 +526,15 @@
         <div class="result-banner" id="resultBanner">Make your move!</div>
 
         <div class="choices-grid">
-          <button class="choice-btn" onclick="playTurn('stone')">
+          <button class="choice-btn" id="btnStone" onclick="playTurn('stone')">
             <span>🪨</span>
             <span class="choice-label">Stone</span>
           </button>
-          <button class="choice-btn" onclick="playTurn('paper')">
+          <button class="choice-btn" id="btnPaper" onclick="playTurn('paper')">
             <span>📄</span>
             <span class="choice-label">Paper</span>
           </button>
-          <button class="choice-btn" onclick="playTurn('scissors')">
+          <button class="choice-btn" id="btnScissors" onclick="playTurn('scissors')">
             <span>✂️</span>
             <span class="choice-label">Scissors</span>
           </button>
@@ -591,56 +633,150 @@
     let botScore = 0;
     const winningScore = 5;
     let gameMode = 'bot';
-    let roomChannel = null;
+    let summaryShareText = '';
+
+    /* PeerJS WebRTC Infrastructure */
+    let peer = null;
+    let dataChannel = null;
     let currentRoomCode = '';
     let isHost = false;
+    let peerConnected = false;
     let p1Choice = null;
     let p2Choice = null;
-    let summaryShareText = '';
+
+    function updatePeerStatus(connected, text) {
+      peerConnected = connected;
+      const dot = document.getElementById('peerStatusDot');
+      const label = document.getElementById('peerStatusText');
+      if (dot) dot.classList.toggle('online', connected);
+      if (label) label.textContent = text || (connected ? 'Connected' : 'Waiting...');
+    }
 
     function switchMode(mode) {
       gameMode = mode;
       document.getElementById('modeBotBtn').classList.toggle('active', mode === 'bot');
       document.getElementById('modeRoomBtn').classList.toggle('active', mode === 'room');
       document.getElementById('roomControls').style.display = mode === 'room' ? 'flex' : 'none';
-      document.getElementById('p2LabelText').textContent = mode === 'bot' ? 'BOT' : 'P2';
-      resetGame();
+      
+      if (mode === 'bot') {
+        if (dataChannel) { dataChannel.close(); dataChannel = null; }
+        if (peer) { peer.destroy(); peer = null; }
+        document.getElementById('p1LabelText').textContent = 'YOU';
+        document.getElementById('p2LabelText').textContent = 'BOT';
+        updatePeerStatus(false, 'Disconnected');
+      }
+      resetGame(false);
     }
 
     function createRoom() {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       document.getElementById('roomCodeInput').value = code;
+      
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, true);
-      showToast(`Room Created: ${code}`);
+      navigator.clipboard.writeText(newUrl.href);
+      showToast(`Room Created! Direct Link Copied: ${code}`);
     }
 
     function joinRoom() {
       const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
       if (!code) { showToast('Enter room code'); return; }
+      
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, false);
-      showToast(`Joined Room: ${code}`);
+      showToast(`Joining Room: ${code}`);
     }
 
     function initRoom(code, host) {
-      if (roomChannel) roomChannel.close();
+      if (dataChannel) { dataChannel.close(); dataChannel = null; }
+      if (peer) { peer.destroy(); peer = null; }
+
       currentRoomCode = code;
       isHost = host;
-      roomChannel = new BroadcastChannel(`sps_room_${code}`);
+      updatePeerStatus(false, 'Connecting...');
 
-      document.getElementById('p1LabelText').textContent = isHost ? 'YOU (P1)' : 'YOU (P2)';
-      document.getElementById('p2LabelText').textContent = isHost ? 'P2' : 'P1';
+      document.getElementById('p1LabelText').innerHTML = isHost ? 'YOU <span class="host-crown">👑</span>' : 'YOU';
+      document.getElementById('p2LabelText').innerHTML = isHost ? 'OPPONENT' : 'OPPONENT <span class="host-crown">👑</span>';
 
-      roomChannel.onmessage = (e) => {
-        const data = e.data;
-        if (data.type === 'MOVE') {
-          if (isHost) p2Choice = data.choice;
-          else p1Choice = data.choice;
-          checkMultiplayerTurn();
-        } else if (data.type === 'RESET') {
-          resetGame(false);
+      const peerId = isHost ? `sps_${code}` : undefined;
+      peer = new Peer(peerId);
+
+      peer.on('open', () => {
+        if (!isHost) {
+          dataChannel = peer.connect(`sps_${code}`);
+          bindDataChannelEvents();
         }
-      };
+      });
+
+      peer.on('connection', (conn) => {
+        if (isHost) {
+          dataChannel = conn;
+          bindDataChannelEvents();
+        }
+      });
+
+      peer.on('error', (err) => {
+        showToast('Connection error');
+        updatePeerStatus(false, 'Failed');
+      });
+
       resetGame(false);
+    }
+
+    function bindDataChannelEvents() {
+      dataChannel.on('open', () => {
+        updatePeerStatus(true, 'Connected');
+        showToast('P2P Connection Established!');
+        
+        if (isHost) {
+          sendP2PMessage({
+            type: 'SYNC_STATE',
+            userScore: userScore,
+            botScore: botScore
+          });
+        }
+      });
+
+      dataChannel.on('close', () => {
+        updatePeerStatus(false, 'Disconnected');
+      });
+
+      dataChannel.on('data', (data) => {
+        handleP2PMessage(data);
+      });
+    }
+
+    function sendP2PMessage(msg) {
+      if (dataChannel && dataChannel.open) {
+        dataChannel.send(msg);
+      }
+    }
+
+    function handleP2PMessage(data) {
+      if (data.type === 'MOVE') {
+        if (isHost) p2Choice = data.choice;
+        else p1Choice = data.choice;
+        checkMultiplayerTurn();
+      } else if (data.type === 'RESET') {
+        resetGame(false);
+      } else if (data.type === 'SYNC_STATE') {
+        userScore = data.botScore;
+        botScore = data.userScore;
+        document.getElementById('userScore').textContent = userScore;
+        document.getElementById('botScore').textContent = botScore;
+      }
+    }
+
+    function setControlsState(enabled) {
+      document.getElementById('btnStone').disabled = !enabled;
+      document.getElementById('btnPaper').disabled = !enabled;
+      document.getElementById('btnScissors').disabled = !enabled;
     }
 
     function playTurn(userChoice) {
@@ -650,12 +786,12 @@
         const botChoice = choices[Math.floor(Math.random() * choices.length)];
         processRound(userChoice, botChoice);
       } else {
-        if (!roomChannel) { showToast('Create/Join a room first'); return; }
+        if (!peerConnected) { showToast('Waiting for P2P connection'); return; }
         if (isHost) p1Choice = userChoice;
         else p2Choice = userChoice;
 
         document.getElementById('resultBanner').textContent = "Waiting for Opponent...";
-        roomChannel.postMessage({ type: 'MOVE', choice: userChoice });
+        sendP2PMessage({ type: 'MOVE', choice: userChoice });
         checkMultiplayerTurn();
       }
     }
@@ -669,16 +805,19 @@
     }
 
     function processRound(c1, c2) {
-      document.getElementById('userDisplay').textContent = icons[c1];
-      document.getElementById('botDisplay').textContent = icons[c2];
+      const myChoice = isHost ? c1 : c2;
+      const oppChoice = isHost ? c2 : c1;
 
-      if (c1 === c2) {
+      document.getElementById('userDisplay').textContent = icons[myChoice];
+      document.getElementById('botDisplay').textContent = icons[oppChoice];
+
+      if (myChoice === oppChoice) {
         playSound('draw');
         document.getElementById('resultBanner').textContent = "It's a Draw!";
       } else if (
-        (c1 === "stone" && c2 === "scissors") ||
-        (c1 === "paper" && c2 === "stone") ||
-        (c1 === "scissors" && c2 === "paper")
+        (myChoice === "stone" && oppChoice === "scissors") ||
+        (myChoice === "paper" && oppChoice === "stone") ||
+        (myChoice === "scissors" && oppChoice === "paper")
       ) {
         playSound('win');
         userScore++;
@@ -703,6 +842,7 @@
     }
 
     function endGame(title, msg) {
+      setControlsState(false);
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalMsg').textContent = msg;
 
@@ -726,16 +866,29 @@
       botScore = 0;
       p1Choice = null;
       p2Choice = null;
+      setControlsState(true);
       document.getElementById('userScore').textContent = "0";
       document.getElementById('botScore').textContent = "0";
       document.getElementById('userDisplay').textContent = "❓";
       document.getElementById('botDisplay').textContent = "❓";
       document.getElementById('resultBanner').textContent = "Make your move!";
       document.getElementById('gameOverModal').style.display = 'none';
-      if (broadcast && roomChannel) {
-        roomChannel.postMessage({ type: 'RESET' });
+
+      if (broadcast && gameMode === 'room') {
+        sendP2PMessage({ type: 'RESET' });
       }
     }
+
+    // Auto-join via URL query parameter if present
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        switchMode('room');
+        document.getElementById('roomCodeInput').value = roomParam;
+        joinRoom();
+      }
+    });
   </script>
 </body>
 </html>
