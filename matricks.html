@@ -209,6 +209,36 @@
       outline: none;
     }
 
+    .peer-status-badge {
+      font-family: var(--font-chalk-hand);
+      font-size: 0.95rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      border: 1px dashed var(--chalk-dim);
+      color: var(--chalk-yellow);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4d4d;
+      display: inline-block;
+    }
+
+    .status-dot.online {
+      background: var(--chalk-green);
+      box-shadow: 0 0 6px var(--chalk-green);
+    }
+
+    .host-crown {
+      color: var(--chalk-yellow);
+      margin-left: 0.2rem;
+    }
+
     .status-banner {
       font-family: var(--font-chalk-hand);
       font-size: 1.4rem;
@@ -453,6 +483,10 @@
           <button class="toggle-btn" onclick="createRoom()">Create Room</button>
           <input type="text" id="roomCodeInput" class="room-input" placeholder="CODE" maxlength="6" />
           <button class="toggle-btn" onclick="joinRoom()">Join</button>
+          <span class="peer-status-badge" id="peerStatusBadge">
+            <span class="status-dot" id="peerStatusDot"></span>
+            <span id="peerStatusText">Disconnected</span>
+          </span>
         </div>
       </div>
 
@@ -619,12 +653,23 @@
     let p1Loads = 0;
     let p2Loads = 0;
     let gameMode = 'bot';
-    let roomChannel = null;
-    let currentRoomCode = '';
-    let isHost = false;
     let p1Move = null;
     let p2Move = null;
     let summaryShareText = '';
+
+    /* Peer-to-Peer / WebRTC Multiplayer Infrastructure */
+    let roomChannel = null;
+    let peerConnection = null;
+    let dataChannel = null;
+    let currentRoomCode = '';
+    let isHost = false;
+    let peerConnected = false;
+    let localPeerId = Math.random().toString(36).substring(2, 9);
+    let remotePeerId = null;
+
+    const rtcConfig = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
 
     const MOVES = {
       load: { name: 'Load', cost: 0, tier: 0, type: 'load' },
@@ -643,53 +688,172 @@
       setTimeout(() => { toast.style.display = 'none'; }, 2000);
     }
 
+    function updatePeerStatus(connected, text) {
+      peerConnected = connected;
+      const dot = document.getElementById('peerStatusDot');
+      const label = document.getElementById('peerStatusText');
+      if (dot) dot.classList.toggle('online', connected);
+      if (label) label.textContent = text || (connected ? 'Connected' : 'Waiting...');
+    }
+
     function switchMode(mode) {
       gameMode = mode;
       document.getElementById('modeBotBtn').classList.toggle('active', mode === 'bot');
       document.getElementById('modeRoomBtn').classList.toggle('active', mode === 'room');
       document.getElementById('roomControls').style.display = mode === 'room' ? 'flex' : 'none';
-      document.getElementById('p2Name').textContent = mode === 'bot' ? 'Opponent Bot' : 'Player 2';
-      resetGame();
+      
+      if (mode === 'bot') {
+        if (roomChannel) { roomChannel.close(); roomChannel = null; }
+        if (peerConnection) { peerConnection.close(); peerConnection = null; }
+        document.getElementById('p1Name').textContent = 'You';
+        document.getElementById('p2Name').textContent = 'Opponent Bot';
+        updatePeerStatus(false, 'Disconnected');
+      }
+      resetGame(false);
     }
 
     function createRoom() {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       document.getElementById('roomCodeInput').value = code;
+
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, true);
-      showToast(`Room Created: ${code}`);
+      navigator.clipboard.writeText(newUrl.href);
+      showToast(`Room Created! Direct Link Copied: ${code}`);
     }
 
     function joinRoom() {
       const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
       if (!code) { showToast('Enter room code'); return; }
+
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('room', code);
+      window.history.pushState({}, '', newUrl);
+
       initRoom(code, false);
-      showToast(`Joined Room: ${code}`);
+      showToast(`Joining Room: ${code}`);
     }
 
     function initRoom(code, host) {
       if (roomChannel) roomChannel.close();
+      if (peerConnection) peerConnection.close();
+
       currentRoomCode = code;
       isHost = host;
+      updatePeerStatus(false, 'Connecting...');
+
+      document.getElementById('p1Name').innerHTML = isHost ? 'You <span class="host-crown">👑</span>' : 'You';
+      document.getElementById('p2Name').innerHTML = isHost ? 'Opponent' : 'Opponent <span class="host-crown">👑</span>';
+
       roomChannel = new BroadcastChannel(`matricks_room_${code}`);
       
-      document.getElementById('p1Name').textContent = isHost ? 'You (P1)' : 'You (P2)';
-      document.getElementById('p2Name').textContent = isHost ? 'Opponent (P2)' : 'Opponent (P1)';
-
-      roomChannel.onmessage = (e) => {
+      roomChannel.onmessage = async (e) => {
         const data = e.data;
-        if (data.type === 'MOVE') {
-          if (isHost) {
-            p2Move = data.move;
-            checkMultiplayerTurn();
-          } else {
-            p1Move = data.move;
-            checkMultiplayerTurn();
+        if (data.targetId && data.targetId !== localPeerId) return;
+
+        if (data.type === 'PEER_JOIN' && isHost) {
+          remotePeerId = data.senderId;
+          setupPeerConnection();
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          roomChannel.postMessage({
+            type: 'SIGNAL_OFFER',
+            senderId: localPeerId,
+            targetId: remotePeerId,
+            sdp: offer
+          });
+        } else if (data.type === 'SIGNAL_OFFER' && !isHost) {
+          remotePeerId = data.senderId;
+          setupPeerConnection();
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          roomChannel.postMessage({
+            type: 'SIGNAL_ANSWER',
+            senderId: localPeerId,
+            targetId: remotePeerId,
+            sdp: answer
+          });
+        } else if (data.type === 'SIGNAL_ANSWER' && isHost) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        } else if (data.type === 'ICE_CANDIDATE') {
+          if (peerConnection) {
+            try { await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(err){}
           }
-        } else if (data.type === 'RESET') {
-          resetGame(false);
         }
       };
+
+      if (!isHost) {
+        roomChannel.postMessage({ type: 'PEER_JOIN', senderId: localPeerId });
+      }
       resetGame(false);
+    }
+
+    function setupPeerConnection() {
+      peerConnection = new RTCPeerConnection(rtcConfig);
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && roomChannel) {
+          roomChannel.postMessage({
+            type: 'ICE_CANDIDATE',
+            senderId: localPeerId,
+            targetId: remotePeerId,
+            candidate: event.candidate
+          });
+        }
+      };
+
+      if (isHost) {
+        dataChannel = peerConnection.createDataChannel('gameData');
+        bindDataChannelEvents();
+      } else {
+        peerConnection.ondatachannel = (event) => {
+          dataChannel = event.channel;
+          bindDataChannelEvents();
+        };
+      }
+    }
+
+    function bindDataChannelEvents() {
+      dataChannel.onopen = () => {
+        updatePeerStatus(true, 'Connected');
+        showToast('P2P Connection Established!');
+        if (isHost) {
+          sendP2PMessage({ type: 'SYNC_STATE', p1Loads: p1Loads, p2Loads: p2Loads });
+        }
+      };
+
+      dataChannel.onclose = () => {
+        updatePeerStatus(false, 'Disconnected');
+      };
+
+      dataChannel.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        handleP2PMessage(data);
+      };
+    }
+
+    function sendP2PMessage(msg) {
+      if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify(msg));
+      }
+    }
+
+    function handleP2PMessage(data) {
+      if (data.type === 'MOVE') {
+        if (isHost) p2Move = data.move;
+        else p1Move = data.move;
+        checkMultiplayerTurn();
+      } else if (data.type === 'RESET') {
+        resetGame(false);
+      } else if (data.type === 'SYNC_STATE') {
+        p1Loads = data.p2Loads;
+        p2Loads = data.p1Loads;
+        updateUI();
+      }
     }
 
     function updateUI() {
@@ -718,12 +882,12 @@
         const m2Key = getBotMove();
         processRound(m1Key, m2Key);
       } else {
-        if (!roomChannel) { showToast('Create/Join a room first'); return; }
+        if (!peerConnected) { showToast('Waiting for P2P connection'); return; }
         if (isHost) p1Move = m1Key;
         else p2Move = m1Key;
 
         document.getElementById('statusBanner').textContent = "Waiting for Opponent move...";
-        roomChannel.postMessage({ type: 'MOVE', move: m1Key });
+        sendP2PMessage({ type: 'MOVE', move: m1Key });
         checkMultiplayerTurn();
       }
     }
@@ -810,14 +974,24 @@
       document.getElementById('p2Gesture').innerHTML = SVG_TEMPLATES.none;
       document.getElementById('statusBanner').textContent = "Choose your hand gesture!";
       document.getElementById('gameOverModal').style.display = 'none';
-      if (broadcast && roomChannel) {
-        roomChannel.postMessage({ type: 'RESET' });
+      if (broadcast && gameMode === 'room') {
+        sendP2PMessage({ type: 'RESET' });
       }
       updateUI();
     }
 
-    renderSVGs();
-    updateUI();
+    // Auto-join via URL query parameter if present
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSVGs();
+      updateUI();
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        switchMode('room');
+        document.getElementById('roomCodeInput').value = roomParam;
+        joinRoom();
+      }
+    });
   </script>
 </body>
 </html>
