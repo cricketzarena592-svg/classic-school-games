@@ -90,18 +90,13 @@
     let summaryShareText = '';
 
     /* Peer-to-Peer / WebRTC Multiplayer Infrastructure */
-    let roomChannel = null;
-    let peerConnection = null;
+    let peer = null;
+    let dataConnection = null;
     let dataChannel = null;
     let currentRoomCode = '';
     let isHost = false;
     let peerConnected = false;
-    let localPeerId = Math.random().toString(36).substring(2, 9);
-    let remotePeerId = null;
-
-    const rtcConfig = {
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    };
+    const PEER_PREFIX = 'CSG_NPAT_';
 
     const availableLetters = Object.keys(DATABASE);
 
@@ -120,10 +115,9 @@
       document.getElementById('roomControls').style.display = mode === 'room' ? 'flex' : 'none';
       document.getElementById('p2LabelText').textContent = mode === 'bot' ? 'Bot' : 'P2';
       document.getElementById('thP2Name').textContent = mode === 'bot' ? 'Bot' : 'P2';
-      
+
       if (mode === 'bot') {
-        if (roomChannel) { roomChannel.close(); roomChannel = null; }
-        if (peerConnection) { peerConnection.close(); peerConnection = null; }
+        cleanupPeer();
         updatePeerStatus(false, 'Disconnected');
       }
       resetGame(false);
@@ -155,104 +149,61 @@
     }
 
     function initRoom(code, host) {
-      if (roomChannel) roomChannel.close();
-      if (peerConnection) peerConnection.close();
+      cleanupPeer();
 
       currentRoomCode = code;
       isHost = host;
       updatePeerStatus(false, 'Connecting...');
 
-      roomChannel = new BroadcastChannel(`npat_room_${code}`);
-      
-      roomChannel.onmessage = async (e) => {
-        const data = e.data;
-        if (data.targetId && data.targetId !== localPeerId) return;
-
-        if (data.type === 'PEER_JOIN' && isHost) {
-          remotePeerId = data.senderId;
-          setupPeerConnection();
-          const offer = await peerConnection.createOffer();
-          await peerConnection.setLocalDescription(offer);
-          roomChannel.postMessage({
-            type: 'SIGNAL_OFFER',
-            senderId: localPeerId,
-            targetId: remotePeerId,
-            sdp: offer
-          });
-        } else if (data.type === 'SIGNAL_OFFER' && !isHost) {
-          remotePeerId = data.senderId;
-          setupPeerConnection();
-          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          roomChannel.postMessage({
-            type: 'SIGNAL_ANSWER',
-            senderId: localPeerId,
-            targetId: remotePeerId,
-            sdp: answer
-          });
-        } else if (data.type === 'SIGNAL_ANSWER' && isHost) {
-          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        } else if (data.type === 'ICE_CANDIDATE') {
-          if (peerConnection) {
-            try { await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(err){}
-          }
+      peer = new Peer(isHost ? PEER_PREFIX + code : undefined);
+      peer.on('open', () => {
+        if (isHost) {
+          showToast(`Room Created: ${code}`);
+        } else {
+          dataConnection = peer.connect(PEER_PREFIX + code, { reliable: true });
+          bindDataConnection(dataConnection);
         }
-      };
-
-      if (!isHost) {
-        roomChannel.postMessage({ type: 'PEER_JOIN', senderId: localPeerId });
-      }
+      });
+      peer.on('connection', (connection) => {
+        if (isHost) {
+          dataConnection = connection;
+          bindDataConnection(dataConnection);
+        }
+      });
+      peer.on('error', (error) => {
+        showToast(error.type === 'peer-unavailable' ? 'Room not found' : 'Connection failed');
+        updatePeerStatus(false, 'Failed');
+      });
       resetGame(false);
     }
 
-    function setupPeerConnection() {
-      peerConnection = new RTCPeerConnection(rtcConfig);
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate && roomChannel) {
-          roomChannel.postMessage({
-            type: 'ICE_CANDIDATE',
-            senderId: localPeerId,
-            targetId: remotePeerId,
-            candidate: event.candidate
-          });
-        }
-      };
-
-      if (isHost) {
-        dataChannel = peerConnection.createDataChannel('gameData');
-        bindDataChannelEvents();
-      } else {
-        peerConnection.ondatachannel = (event) => {
-          dataChannel = event.channel;
-          bindDataChannelEvents();
-        };
-      }
+    function cleanupPeer() {
+      if (dataConnection) { dataConnection.close(); dataConnection = null; }
+      if (peer) { peer.destroy(); peer = null; }
+      dataChannel = null;
     }
 
-    function bindDataChannelEvents() {
-      dataChannel.onopen = () => {
+    function bindDataConnection(connection) {
+      connection.on('open', () => {
+        dataChannel = connection;
         updatePeerStatus(true, 'Connected');
         showToast('P2P Connection Established!');
         if (isHost) {
           startRound();
         }
-      };
-
-      dataChannel.onclose = () => {
+      });
+      connection.on('close', () => {
         updatePeerStatus(false, 'Disconnected');
-      };
-
-      dataChannel.onmessage = (e) => {
-        const data = JSON.parse(e.data);
+        dataChannel = null;
+      });
+      connection.on('data', (data) => {
         handleP2PMessage(data);
-      };
+      });
     }
 
     function sendP2PMessage(msg) {
-      if (dataChannel && dataChannel.readyState === 'open') {
-        dataChannel.send(JSON.stringify(msg));
+      if (dataChannel && dataChannel.open) {
+        dataChannel.send(msg);
       }
     }
 
