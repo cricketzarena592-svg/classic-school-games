@@ -60,9 +60,16 @@ A chalk-themed web application that brings nostalgic classroom desk games into y
 ├── penfight.html     # Pen Fighter game
 ├── npat.html         # NPAT game
 ├── sps.html          # Stone Paper Scissors game
-└── thiefpolice.html  # Thief and Police game
+├── thiefpolice.html  # Thief and Police game
+├── frontend/
+│   ├── css/           # Page-specific stylesheets
+│   └── js/            # Page-specific game and UI logic
+├── backend/           # Reserved for future server-side features
+└── scripts/           # Maintenance scripts
 
 ```
+
+The current project is a static frontend. Multiplayer room connections are peer-to-peer through PeerJS/WebRTC, so there is no application backend to run today. Future server-side features such as accounts, saved scores, matchmaking, or authoritative game state belong in `backend/`.
 
 ---
 
