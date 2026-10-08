@@ -339,7 +339,10 @@
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalMsg').textContent = msg;
 
-      summaryShareText = `🌍 Atlas Game Results:\nResult: ${title}\nPlaces Named: ${usedPlaces.size}\nPlay on ClassicSchoolGames!`;
+      summaryShareText = window.formatGameResultShare(
+        'Atlas',
+        `Result: ${title}\nPlaces named: ${usedPlaces.size}`
+      );
       document.getElementById('shareResultText').textContent = `${title} | ${usedPlaces.size} Places Named`;
 
       document.getElementById('gameOverModal').style.display = 'flex';
@@ -400,4 +403,3 @@
       }
       setTurn(true);
     }
-

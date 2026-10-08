@@ -369,7 +369,10 @@
         document.getElementById('finalTitle').textContent = title;
         document.getElementById('finalMsg').textContent = msg;
 
-        summaryShareText = `✏️ Name Place Animal Thing Results:\nResult: ${title}\nScores: You ${userTotalScore} - ${botTotalScore} ${p2Label}\nPlay on ClassicSchoolGames!`;
+        summaryShareText = window.formatGameResultShare(
+          'Name Place Animal Thing',
+          `Result: ${title}\nScores: You ${userTotalScore} - ${botTotalScore} ${p2Label}`
+        );
         document.getElementById('shareResultText').textContent = `${title} | Score: ${userTotalScore}-${botTotalScore}`;
 
         document.getElementById('gameOverModal').style.display = 'flex';
@@ -449,4 +452,3 @@
         startRound();
       }
     });
-

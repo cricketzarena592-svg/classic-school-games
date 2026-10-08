@@ -331,7 +331,10 @@
         document.getElementById('modalTitle').textContent = title;
         document.getElementById('modalMsg').textContent = msg;
 
-        summaryShareText = `🖐️ Matricks Results:\nResult: ${title}\nFinal Action: ${m1.name} vs ${m2.name}\nPlay on ClassicSchoolGames!`;
+        summaryShareText = window.formatGameResultShare(
+          'Matricks',
+          `Result: ${title}\nFinal action: ${m1.name} vs ${m2.name}`
+        );
         document.getElementById('shareResultText').textContent = `${title} | ${m1.name} vs ${m2.name}`;
 
         document.getElementById('gameOverModal').style.display = 'flex';
@@ -408,4 +411,3 @@
         joinRoom();
       }
     });
-

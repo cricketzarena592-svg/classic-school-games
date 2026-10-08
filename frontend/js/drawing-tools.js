@@ -12,7 +12,7 @@
 
   const ctx = canvas.getContext('2d');
   const state = {
-    activeGroup: 'pencil',
+    activeGroup: null,
     tool: 'pen',
     color: '#f5f2e7',
     isDrawing: false,
@@ -25,38 +25,57 @@
   const toolbox = document.createElement('div');
   toolbox.className = 'drawing-toolbox';
   toolbox.innerHTML = `
-    <div class="toolbox-row toolbox-top">
-      <button type="button" class="box-toggle active" data-group="pencil">Pencil Box</button>
-      <button type="button" class="box-toggle" data-group="geometry">Geometry Box</button>
+    <div class="case-row">
+      <section class="instrument-case pencil-case" data-case="pencil">
+        <div class="case-base">
+          <div class="case-interior">
+            <button type="button" class="case-tool active" data-tool="pen"><span>✏️</span><small>Pen</small></button>
+            <button type="button" class="case-tool" data-tool="rubber"><span>🧽</span><small>Rubber</small></button>
+          </div>
+          <div class="case-front">PENCIL SET</div>
+        </div>
+        <button type="button" class="case-lid" data-group="pencil" aria-expanded="false">
+          <span class="case-lid-title">Pencil Box</span>
+          <span class="case-lid-art" aria-hidden="true">✏︎ ✎ ✐</span>
+          <span class="case-hinge" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="instrument-case geometry-case" data-case="geometry">
+        <div class="case-base">
+          <div class="case-interior">
+            <button type="button" class="case-tool" data-tool="pen"><span>✏️</span><small>Pen</small></button>
+            <button type="button" class="case-tool" data-tool="compass"><span>🧭</span><small>Compass</small></button>
+            <button type="button" class="case-tool" data-tool="rubber"><span>🧽</span><small>Rubber</small></button>
+          </div>
+          <div class="case-front">GEOMETRY SET</div>
+        </div>
+        <button type="button" class="case-lid" data-group="geometry" aria-expanded="false">
+          <span class="case-lid-title">Geometry Box</span>
+          <span class="case-lid-art" aria-hidden="true">△ 〇 ∠</span>
+          <span class="case-hinge" aria-hidden="true"></span>
+        </button>
+      </section>
+      <button type="button" class="tool-clear">Clear board</button>
     </div>
 
-    <div class="toolbox-row toolbox-middle">
-      <div class="tool-panel active" data-panel="pencil">
-        <button type="button" class="tool-pill active" data-tool="pen"><span class="tool-icon">✏️</span><span>Pen</span></button>
-        <button type="button" class="tool-pill" data-tool="rubber"><span class="tool-icon">🧽</span><span>Rubber</span></button>
-        <button type="button" class="tool-pill" data-tool="chalk"><span class="tool-icon">🖍️</span><span>Chalk</span></button>
-      </div>
-      <div class="tool-panel" data-panel="geometry">
-        <button type="button" class="tool-pill active" data-tool="pen"><span class="tool-icon">✏️</span><span>Pen</span></button>
-        <button type="button" class="tool-pill" data-tool="compass"><span class="tool-icon">🧭</span><span>Compass</span></button>
-        <button type="button" class="tool-pill" data-tool="rubber"><span class="tool-icon">🧽</span><span>Rubber</span></button>
-        <button type="button" class="tool-pill" data-tool="chalk"><span class="tool-icon">🖍️</span><span>Chalk</span></button>
-      </div>
-      <button type="button" class="tool-clear">Clear</button>
-    </div>
-
-    <div class="chalk-strip" aria-label="Chalk colors">
-      <button type="button" class="swatch active" data-color="#f5f2e7" style="--swatch:#f5f2e7" aria-label="White chalk"></button>
-      <button type="button" class="swatch" data-color="#f3d976" style="--swatch:#f3d976" aria-label="Yellow chalk"></button>
-      <button type="button" class="swatch" data-color="#e99cb5" style="--swatch:#e99cb5" aria-label="Pink chalk"></button>
-      <button type="button" class="swatch" data-color="#92d4dc" style="--swatch:#92d4dc" aria-label="Blue chalk"></button>
-      <button type="button" class="swatch" data-color="#a6dfab" style="--swatch:#a6dfab" aria-label="Green chalk"></button>
+    <div class="chalk-strip" aria-label="Choose chalk color">
+      <button type="button" class="chalk-stick active" data-color="#f5f2e7" style="--swatch:#f5f2e7" aria-label="White chalk"></button>
+      <button type="button" class="chalk-stick" data-color="#f3d976" style="--swatch:#f3d976" aria-label="Yellow chalk"></button>
+      <button type="button" class="chalk-stick" data-color="#e99cb5" style="--swatch:#e99cb5" aria-label="Pink chalk"></button>
+      <button type="button" class="chalk-stick" data-color="#92d4dc" style="--swatch:#92d4dc" aria-label="Blue chalk"></button>
+      <button type="button" class="chalk-stick" data-color="#a6dfab" style="--swatch:#a6dfab" aria-label="Green chalk"></button>
     </div>
   `;
 
   const chalkTray = frame.querySelector('.chalk-tray');
   if (chalkTray) {
     frame.insertBefore(toolbox, chalkTray);
+    const chalkStrip = toolbox.querySelector('.chalk-strip');
+    chalkTray.replaceChildren(...chalkStrip.children);
+    chalkStrip.remove();
+    chalkTray.classList.add('drawing-chalk-tray');
+    chalkTray.setAttribute('aria-label', 'Choose chalk color');
   } else {
     frame.appendChild(toolbox);
   }
@@ -69,18 +88,17 @@
 
   function setActiveTool(tool) {
     state.tool = tool;
-    toolbox.querySelectorAll('.tool-pill').forEach((button) => {
+    toolbox.querySelectorAll('.case-tool').forEach((button) => {
       button.classList.toggle('active', button.dataset.tool === tool);
     });
   }
 
   function setActiveGroup(group) {
-    state.activeGroup = group;
-    toolbox.querySelectorAll('.box-toggle').forEach((button) => {
-      button.classList.toggle('active', button.dataset.group === group);
-    });
-    toolbox.querySelectorAll('.tool-panel').forEach((panel) => {
-      panel.classList.toggle('active', panel.dataset.panel === group);
+    state.activeGroup = state.activeGroup === group ? null : group;
+    toolbox.querySelectorAll('.instrument-case').forEach((caseBox) => {
+      const isOpen = caseBox.dataset.case === state.activeGroup;
+      caseBox.classList.toggle('is-open', isOpen);
+      caseBox.querySelector('.case-lid').setAttribute('aria-expanded', String(isOpen));
     });
   }
 
@@ -154,23 +172,24 @@
     state.isDrawing = false;
   }
 
-  toolbox.addEventListener('click', (event) => {
-    const groupButton = event.target.closest('.box-toggle');
+  frame.addEventListener('click', (event) => {
+    const groupButton = event.target.closest('.case-lid');
     if (groupButton) {
       setActiveGroup(groupButton.dataset.group);
       return;
     }
 
-    const toolButton = event.target.closest('.tool-pill');
+    const toolButton = event.target.closest('.case-tool');
     if (toolButton) {
       setActiveTool(toolButton.dataset.tool);
       return;
     }
 
-    const swatch = event.target.closest('.swatch');
+    const swatch = event.target.closest('.chalk-stick');
     if (swatch) {
       state.color = swatch.dataset.color;
-      toolbox.querySelectorAll('.swatch').forEach((button) => {
+      setActiveTool('chalk');
+      frame.querySelectorAll('.chalk-stick').forEach((button) => {
         button.classList.toggle('active', button === swatch);
       });
       return;

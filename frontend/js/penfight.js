@@ -518,7 +518,10 @@
     document.getElementById('playAgainBtn').onclick = () => initDesk(true);
 
     document.getElementById('shareResultBtn').onclick = () => {
-      const shareData = `🖊️ Pen Fighter Result:\nOutcome: ${lastMatchResult || 'Match Finished'}\nPlayed on ClassicSchoolGames!`;
+      const shareData = window.formatGameResultShare(
+        'Pen Fighter',
+        `Outcome: ${lastMatchResult || 'Match finished'}`
+      );
 
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(shareData)
@@ -562,4 +565,3 @@
     });
 
     gameLoop();
-

@@ -513,7 +513,10 @@
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalMsg').textContent = msg;
 
-      summaryShareText = `🏏 Hand Cricket Results:\nResult: ${title}\nFinal Score: ${currentScore}\nTarget: ${targetScore || '-'}\nPlay on ClassicSchoolGames!`;
+      summaryShareText = window.formatGameResultShare(
+        'Hand Cricket',
+        `Result: ${title}\nFinal score: ${currentScore}\nTarget: ${targetScore ?? '-'}`
+      );
       document.getElementById('shareResultText').textContent = `${title} | Score: ${currentScore}`;
 
       document.getElementById('gameOverModal').style.display = 'flex';
@@ -597,4 +600,3 @@
         joinRoom();
       }
     });
-

@@ -279,7 +279,10 @@
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalMsg').textContent = msg;
 
-      summaryShareText = `✂️ Stone Paper Scissors Results:\nResult: ${title}\nFinal Score: ${userScore} - ${botScore}\nPlay on ClassicSchoolGames!`;
+      summaryShareText = window.formatGameResultShare(
+        'Stone Paper Scissors',
+        `Result: ${title}\nFinal score: ${userScore} - ${botScore}`
+      );
       document.getElementById('shareResultText').textContent = `${title} | Score: ${userScore} - ${botScore}`;
 
       document.getElementById('gameOverModal').style.display = 'flex';
@@ -356,4 +359,3 @@
         joinRoom();
       }
     });
-
