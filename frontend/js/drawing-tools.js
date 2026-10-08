@@ -25,32 +25,33 @@
   const toolbox = document.createElement('div');
   toolbox.className = 'drawing-toolbox';
   toolbox.innerHTML = `
-    <div class="tool-heading">
-      <button type="button" class="drawer-trigger active" data-group="pencil">Pencil Box</button>
-      <button type="button" class="drawer-trigger" data-group="geometry">Geometry Box</button>
+    <div class="toolbox-row toolbox-top">
+      <button type="button" class="box-toggle active" data-group="pencil">Pencil Box</button>
+      <button type="button" class="box-toggle" data-group="geometry">Geometry Box</button>
     </div>
 
-    <div class="drawer-panel active" data-panel="pencil">
-      <button type="button" class="tool-option active" data-tool="pen">✏️ Pen</button>
-      <button type="button" class="tool-option" data-tool="chalk">🖍️ Chalk</button>
-      <button type="button" class="tool-option" data-tool="eraser">🧽 Rubber</button>
-      <div class="color-row">
-        <button type="button" class="swatch active" data-color="#f5f2e7" style="--swatch:#f5f2e7" aria-label="White chalk"></button>
-        <button type="button" class="swatch" data-color="#f3d976" style="--swatch:#f3d976" aria-label="Yellow chalk"></button>
-        <button type="button" class="swatch" data-color="#92d4dc" style="--swatch:#92d4dc" aria-label="Blue chalk"></button>
-        <button type="button" class="swatch" data-color="#a6dfab" style="--swatch:#a6dfab" aria-label="Green chalk"></button>
-        <button type="button" class="swatch" data-color="#e99cb5" style="--swatch:#e99cb5" aria-label="Pink chalk"></button>
+    <div class="toolbox-row toolbox-middle">
+      <div class="tool-panel active" data-panel="pencil">
+        <button type="button" class="tool-pill active" data-tool="pen"><span class="tool-icon">✏️</span><span>Pen</span></button>
+        <button type="button" class="tool-pill" data-tool="rubber"><span class="tool-icon">🧽</span><span>Rubber</span></button>
+        <button type="button" class="tool-pill" data-tool="chalk"><span class="tool-icon">🖍️</span><span>Chalk</span></button>
       </div>
+      <div class="tool-panel" data-panel="geometry">
+        <button type="button" class="tool-pill active" data-tool="pen"><span class="tool-icon">✏️</span><span>Pen</span></button>
+        <button type="button" class="tool-pill" data-tool="compass"><span class="tool-icon">🧭</span><span>Compass</span></button>
+        <button type="button" class="tool-pill" data-tool="rubber"><span class="tool-icon">🧽</span><span>Rubber</span></button>
+        <button type="button" class="tool-pill" data-tool="chalk"><span class="tool-icon">🖍️</span><span>Chalk</span></button>
+      </div>
+      <button type="button" class="tool-clear">Clear</button>
     </div>
 
-    <div class="drawer-panel" data-panel="geometry">
-      <button type="button" class="tool-option" data-tool="pen">✏️ Pen</button>
-      <button type="button" class="tool-option" data-tool="compass">🧭 Compass</button>
-      <button type="button" class="tool-option" data-tool="eraser">🧽 Rubber</button>
-      <button type="button" class="tool-option" data-tool="chalk">🖍️ Chalk</button>
+    <div class="chalk-strip" aria-label="Chalk colors">
+      <button type="button" class="swatch active" data-color="#f5f2e7" style="--swatch:#f5f2e7" aria-label="White chalk"></button>
+      <button type="button" class="swatch" data-color="#f3d976" style="--swatch:#f3d976" aria-label="Yellow chalk"></button>
+      <button type="button" class="swatch" data-color="#e99cb5" style="--swatch:#e99cb5" aria-label="Pink chalk"></button>
+      <button type="button" class="swatch" data-color="#92d4dc" style="--swatch:#92d4dc" aria-label="Blue chalk"></button>
+      <button type="button" class="swatch" data-color="#a6dfab" style="--swatch:#a6dfab" aria-label="Green chalk"></button>
     </div>
-
-    <button type="button" class="tool-clear">Clear</button>
   `;
 
   const chalkTray = frame.querySelector('.chalk-tray');
@@ -68,20 +69,17 @@
 
   function setActiveTool(tool) {
     state.tool = tool;
-
-    toolbox.querySelectorAll('.tool-option').forEach((button) => {
+    toolbox.querySelectorAll('.tool-pill').forEach((button) => {
       button.classList.toggle('active', button.dataset.tool === tool);
     });
   }
 
   function setActiveGroup(group) {
     state.activeGroup = group;
-
-    toolbox.querySelectorAll('.drawer-trigger').forEach((button) => {
+    toolbox.querySelectorAll('.box-toggle').forEach((button) => {
       button.classList.toggle('active', button.dataset.group === group);
     });
-
-    toolbox.querySelectorAll('.drawer-panel').forEach((panel) => {
+    toolbox.querySelectorAll('.tool-panel').forEach((panel) => {
       panel.classList.toggle('active', panel.dataset.panel === group);
     });
   }
@@ -101,11 +99,11 @@
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    if (state.tool === 'eraser') {
+    if (state.tool === 'rubber') {
       ctx.save();
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
-      ctx.lineWidth = 20;
+      ctx.lineWidth = 18;
       ctx.stroke();
       ctx.restore();
       return;
@@ -148,32 +146,22 @@
       const radius = Math.hypot(point.x - state.startX, point.y - state.startY);
       ctx.beginPath();
       ctx.arc(state.startX, state.startY, radius, 0, Math.PI * 2);
-
-      if (state.tool === 'eraser') {
-        ctx.save();
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.strokeStyle = 'rgba(0,0,0,1)';
-        ctx.lineWidth = 22;
-        ctx.stroke();
-        ctx.restore();
-      } else {
-        ctx.strokeStyle = state.color;
-        ctx.lineWidth = state.tool === 'chalk' ? 8 : 4;
-        ctx.stroke();
-      }
+      ctx.strokeStyle = state.color;
+      ctx.lineWidth = state.tool === 'chalk' ? 8 : 4;
+      ctx.stroke();
     }
 
     state.isDrawing = false;
   }
 
   toolbox.addEventListener('click', (event) => {
-    const groupButton = event.target.closest('.drawer-trigger');
+    const groupButton = event.target.closest('.box-toggle');
     if (groupButton) {
       setActiveGroup(groupButton.dataset.group);
       return;
     }
 
-    const toolButton = event.target.closest('.tool-option');
+    const toolButton = event.target.closest('.tool-pill');
     if (toolButton) {
       setActiveTool(toolButton.dataset.tool);
       return;
