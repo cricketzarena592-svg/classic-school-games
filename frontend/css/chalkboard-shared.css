@@ -1,0 +1,186 @@
+:root {
+  --chalk-white: #f5f2e7;
+  --chalk-yellow: #f3d976;
+  --chalk-green: #a6dfab;
+  --chalk-blue: #92d4dc;
+  --chalk-orange: #efa97c;
+  --chalk-pink: #e99cb5;
+  --chalk-purple: #b9b1e3;
+  --chalk-dim: rgba(245, 242, 231, 0.42);
+  --board-bg: #173d32;
+  --wood-border: #755036;
+  --wood-inner: #32251b;
+  --bg-color: #111613;
+  --card-bg: #173d32;
+  --text-color: #f5f2e7;
+  --text-muted: #aec5b5;
+  --accent-color: #f3d976;
+  --border-color: rgba(245, 242, 231, 0.22);
+  --frame-color: #755036;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.36), inset 0 0 32px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] {
+  --board-bg: #171d1a;
+  --wood-border: #53402f;
+  --wood-inner: #282018;
+  --bg-color: #101311;
+  --card-bg: #171d1a;
+}
+
+body {
+  background-color: #111613;
+  background-image:
+    radial-gradient(ellipse at 16% 0%, rgba(119, 172, 118, 0.15), transparent 42%),
+    radial-gradient(ellipse at 90% 100%, rgba(224, 163, 105, 0.08), transparent 40%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 13px);
+  background-attachment: fixed;
+}
+
+.board-frame {
+  background: linear-gradient(145deg, #89613f, var(--wood-border) 42%, #4c3626);
+  border-color: var(--wood-inner);
+  box-shadow: 0 24px 68px rgba(0, 0, 0, 0.52), inset 0 0 0 2px rgba(240, 199, 143, 0.14);
+}
+
+.board-frame::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(245, 220, 183, 0.22);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.blackboard {
+  isolation: isolate;
+  border-color: rgba(245, 242, 231, 0.2);
+  background-color: var(--board-bg);
+  background-image:
+    radial-gradient(ellipse at 18% 0%, rgba(159, 210, 159, 0.1), transparent 48%),
+    radial-gradient(ellipse at 100% 100%, rgba(0, 0, 0, 0.24), transparent 55%),
+    linear-gradient(rgba(245, 242, 231, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 242, 231, 0.018) 1px, transparent 1px);
+  background-size: auto, auto, 36px 36px, 36px 36px;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.24);
+  animation: board-arrive 420ms ease-out both;
+}
+
+.blackboard::before {
+  background: repeating-radial-gradient(circle at 37% 24%, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 5px);
+  opacity: 0.22;
+  z-index: -1;
+}
+
+header {
+  border-bottom: 1px solid rgba(245, 242, 231, 0.2);
+}
+
+.brand {
+  letter-spacing: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.brand-icon {
+  background: linear-gradient(145deg, var(--chalk-yellow), var(--chalk-blue));
+  border-radius: 2px;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.36);
+}
+
+:is(.eraser-btn, .toggle-btn, .action-btn, .move-btn, .modal-btn, .close-modal-btn, .vote-btn, .btn) {
+  border-radius: 5px;
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
+}
+
+:is(.eraser-btn, .toggle-btn, .action-btn, .move-btn, .modal-btn, .close-modal-btn, .vote-btn, .btn):not(:disabled):hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+:is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--chalk-yellow);
+  outline-offset: 3px;
+}
+
+:is(.player-box, .gesture-display, .status-banner, .status-panel, .scoreboard, .phase-box, .game-card, .modal-card) {
+  border-radius: 6px;
+}
+
+.player-box,
+.gesture-display,
+.status-banner,
+.status-panel,
+.scoreboard,
+.phase-box,
+.game-card {
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045), 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+.room-input,
+input,
+select,
+textarea {
+  accent-color: var(--chalk-green);
+}
+
+.chalk-tray {
+  background: linear-gradient(#79573a, #503923);
+  border-color: #382719;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.25);
+}
+
+.chalk-piece {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px rgba(255, 255, 255, 0.48);
+}
+
+/* Thief & Police uses a lobby layout instead of the framed board markup. */
+.game-card {
+  border-color: var(--frame-color);
+  background-image: radial-gradient(ellipse at 15% 0%, rgba(159, 210, 159, 0.08), transparent 55%);
+}
+
+.lobby-box,
+.player-item,
+.card-reveal-box,
+.vote-btn {
+  border-radius: 5px;
+}
+
+.player-item {
+  border-style: solid;
+  border-color: rgba(245, 242, 231, 0.17);
+}
+
+.action-btn,
+.vote-btn,
+.btn {
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.22);
+}
+
+.action-btn:active,
+.vote-btn:active,
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+@keyframes board-arrive {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .board-frame { padding: 7px; border-width: 4px; }
+  .blackboard { background-size: auto, auto, 28px 28px, 28px 28px; }
+  .brand { font-size: 1.15rem; }
+  header { gap: 10px; flex-wrap: wrap; }
+  .controls-right { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

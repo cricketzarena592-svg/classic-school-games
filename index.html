@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Fredericka+the+Great&family=Patrick+Hand&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="frontend/css/index.css">
+  <link rel="stylesheet" href="frontend/css/chalkboard-shared.css">
 </head>
 <body>
 
@@ -44,61 +45,61 @@
 
       <div class="games-list">
         
-        <div class="game-launch-btn" onclick="launchGame('penfight.html')" style="--chalk-color: var(--chalk-pink);">
+        <a href="penfight.html" class="game-launch-btn" onclick="launchGame('penfight.html'); return false;" style="--chalk-color: var(--chalk-pink);">
           <div class="game-info">
             <span class="game-name">🖋️ Pen Fighter</span>
-            <span class="game-tag">Pass & Play / WebRTC Multiplayer</span>
+            <span class="game-tag">Pass & Play or online room</span>
           </div>
           <div class="action-row"><span class="action-arrow">→</span></div>
-        </div>
+        </a>
 
-        <div class="game-launch-btn" onclick="launchGame('matricks.html')" style="--chalk-color: var(--chalk-purple);">
+        <a href="matricks.html" class="game-launch-btn" onclick="launchGame('matricks.html'); return false;" style="--chalk-color: var(--chalk-purple);">
           <div class="game-info">
             <span class="game-name">🖐️ Matricks</span>
-            <span class="game-tag">Hand Gesture Battle vs Bot</span>
+            <span class="game-tag">Hand strategy or online room</span>
           </div>
           <div class="action-row"><span class="action-arrow">→</span></div>
-        </div>
+        </a>
 
-        <div class="game-launch-btn" onclick="launchGame('handcricket.html')" style="--chalk-color: var(--chalk-green);">
+        <a href="handcricket.html" class="game-launch-btn" onclick="launchGame('handcricket.html'); return false;" style="--chalk-color: var(--chalk-green);">
           <div class="game-info">
             <span class="game-name">🏏 Hand Cricket</span>
-            <span class="game-tag">Toss, Bat & Bowl vs Bot</span>
+            <span class="game-tag">Toss, bat & bowl or online room</span>
           </div>
           <div class="action-row"><span class="action-arrow">→</span></div>
-        </div>
+        </a>
 
-        <div class="game-launch-btn" onclick="launchGame('atlas.html')" style="--chalk-color: var(--chalk-blue);">
+        <a href="atlas.html" class="game-launch-btn" onclick="launchGame('atlas.html'); return false;" style="--chalk-color: var(--chalk-blue);">
           <div class="game-info">
             <span class="game-name">🌍 Atlas</span>
-            <span class="game-tag">Place Word-Chain vs Bot</span>
+            <span class="game-tag">Place-name chain or online room</span>
           </div>
           <div class="action-row"><span class="action-arrow">→</span></div>
-        </div>
+        </a>
 
-        <div class="game-launch-btn" onclick="launchGame('npat.html')" style="--chalk-color: var(--chalk-orange);">
+        <a href="npat.html" class="game-launch-btn" onclick="launchGame('npat.html'); return false;" style="--chalk-color: var(--chalk-orange);">
           <div class="game-info">
             <span class="game-name">📝 NPAT</span>
-            <span class="game-tag">Category Word Battle vs Bot</span>
+            <span class="game-tag">Category word battle or online room</span>
           </div>
           <div class="action-row"><span class="action-arrow">→</span></div>
-        </div>
+        </a>
 
-        <div class="game-launch-btn" onclick="launchGame('sps.html')" style="--chalk-color: var(--chalk-yellow);">
+        <a href="sps.html" class="game-launch-btn" onclick="launchGame('sps.html'); return false;" style="--chalk-color: var(--chalk-yellow);">
           <div class="game-info">
             <span class="game-name">✂️ Stone Paper Scissors</span>
-            <span class="game-tag">Classic Hand Showdown vs Bot</span>
+            <span class="game-tag">Classic hand showdown or online room</span>
           </div>
           <div class="action-row"><span class="action-arrow">→</span></div>
-        </div>
+        </a>
 
-        <div class="game-launch-btn" onclick="launchGame('thiefpolice.html')" style="--chalk-color: var(--chalk-yellow);">
+        <a href="thiefpolice.html" class="game-launch-btn" onclick="launchGame('thiefpolice.html'); return false;" style="--chalk-color: var(--chalk-yellow);">
           <div class="game-info">
             <span class="game-name">👮 Thief and Police</span>
-            <span class="game-tag">Guess the thief</span>
+            <span class="game-tag">Four-player online deduction</span>
           </div>
           <div class="action-row"><span class="action-arrow">→</span></div>
-        </div>
+        </a>
 
 <!--        <div class="game-launch-btn" style="--chalk-color: var(--chalk-dim); opacity: 0.5; cursor: not-allowed;">
           <div class="game-info">

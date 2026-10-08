@@ -452,7 +452,7 @@
 
     function checkMultiplayerTurn() {
       if (p1RunChoice !== null && p2RunChoice !== null) {
-        processDelivery(p1RunChoice, p2RunChoice);
+        processDelivery(isHost ? p1RunChoice : p2RunChoice, isHost ? p2RunChoice : p1RunChoice);
         p1RunChoice = null;
         p2RunChoice = null;
       }

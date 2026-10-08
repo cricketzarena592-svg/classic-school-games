@@ -281,8 +281,10 @@
     }
 
     function processRound(m1Key, m2Key) {
-      const m1 = MOVES[m1Key];
-      const m2 = MOVES[m2Key];
+      const myMoveKey = gameMode === 'room' && !isHost ? m2Key : m1Key;
+      const opponentMoveKey = gameMode === 'room' && !isHost ? m1Key : m2Key;
+      const m1 = MOVES[myMoveKey];
+      const m2 = MOVES[opponentMoveKey];
 
       p1Loads -= m1.cost;
       p2Loads -= m2.cost;
@@ -290,8 +292,8 @@
       if (m1Key === 'load') p1Loads++;
       if (m2Key === 'load') p2Loads++;
 
-      document.getElementById('p1Gesture').innerHTML = SVG_TEMPLATES[m1Key];
-      document.getElementById('p2Gesture').innerHTML = SVG_TEMPLATES[m2Key];
+      document.getElementById('p1Gesture').innerHTML = SVG_TEMPLATES[myMoveKey];
+      document.getElementById('p2Gesture').innerHTML = SVG_TEMPLATES[opponentMoveKey];
 
       playSound(m1.type === 'gun' ? 'shoot' : m1.type === 'shield' ? 'shield' : 'load');
       updateUI();

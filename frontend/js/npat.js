@@ -290,7 +290,10 @@
 
     function checkMultiplayerRound() {
       if (p1SubmittedInputs && p2SubmittedInputs) {
-        evaluateRound(p1SubmittedInputs, p2SubmittedInputs);
+        evaluateRound(
+          isHost ? p1SubmittedInputs : p2SubmittedInputs,
+          isHost ? p2SubmittedInputs : p1SubmittedInputs
+        );
         p1SubmittedInputs = null;
         p2SubmittedInputs = null;
       }
