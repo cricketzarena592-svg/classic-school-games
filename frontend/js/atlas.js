@@ -345,12 +345,46 @@
       document.getElementById('gameOverModal').style.display = 'flex';
     }
 
+    function copyShareText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      return new Promise((resolve, reject) => {
+        const tempArea = document.createElement('textarea');
+        tempArea.value = text;
+        tempArea.setAttribute('readonly', '');
+        tempArea.style.position = 'fixed';
+        tempArea.style.opacity = '0';
+        document.body.appendChild(tempArea);
+        tempArea.select();
+
+        try {
+          const copied = document.execCommand('copy');
+          document.body.removeChild(tempArea);
+          if (copied) resolve(); else reject(new Error('Copy command failed'));
+        } catch (error) {
+          document.body.removeChild(tempArea);
+          reject(error);
+        }
+      });
+    }
+
     function shareResult() {
-      if (navigator.share) {
-        navigator.share({ title: 'Atlas Game Result', text: summaryShareText }).catch(() => {});
+      const shareText = summaryShareText || 'ClassicSchoolGames result';
+
+      if (navigator.share && location.protocol !== 'file:') {
+        navigator.share({ title: 'Atlas Game Result', text: shareText }).then(() => {
+          showToast('Result shared!');
+        }).catch(() => {
+          copyShareText(shareText)
+            .then(() => showToast('Result copied to clipboard!'))
+            .catch(() => showToast('Sharing is not available on this browser.'));
+        });
       } else {
-        navigator.clipboard.writeText(summaryShareText);
-        showToast('Result copied to clipboard!');
+        copyShareText(shareText)
+          .then(() => showToast('Result copied to clipboard!'))
+          .catch(() => showToast('Sharing is not available on this browser.'));
       }
     }
 

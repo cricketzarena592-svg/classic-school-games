@@ -518,12 +518,36 @@
     document.getElementById('playAgainBtn').onclick = () => initDesk(true);
 
     document.getElementById('shareResultBtn').onclick = () => {
-      const shareData = `🖊️ Pen Fighter Result:\nOutcome: ${lastMatchResult}\nPlayed on ClassicSchoolGames!`;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareData);
-        showToast('Result copied to clipboard!');
+      const shareData = `🖊️ Pen Fighter Result:\nOutcome: ${lastMatchResult || 'Match Finished'}\nPlayed on ClassicSchoolGames!`;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(shareData)
+          .then(() => showToast('Result copied to clipboard!'))
+          .catch(() => fallbackShareText(shareData));
+        return;
       }
+
+      fallbackShareText(shareData);
     };
+
+    function fallbackShareText(text) {
+      const tempArea = document.createElement('textarea');
+      tempArea.value = text;
+      tempArea.setAttribute('readonly', '');
+      tempArea.style.position = 'fixed';
+      tempArea.style.opacity = '0';
+      document.body.appendChild(tempArea);
+      tempArea.select();
+
+      try {
+        const copied = document.execCommand('copy');
+        document.body.removeChild(tempArea);
+        showToast(copied ? 'Result copied to clipboard!' : 'Sharing is not available on this browser.');
+      } catch (error) {
+        document.body.removeChild(tempArea);
+        showToast('Sharing is not available on this browser.');
+      }
+    }
 
     // Auto Join via URL
     window.addEventListener('DOMContentLoaded', () => {

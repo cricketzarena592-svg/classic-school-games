@@ -53,6 +53,7 @@ body {
 }
 
 .blackboard {
+  position: relative;
   isolation: isolate;
   border-color: rgba(245, 242, 231, 0.2);
   background-color: var(--board-bg);
@@ -64,6 +65,111 @@ body {
   background-size: auto, auto, 36px 36px, 36px 36px;
   box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.24);
   animation: board-arrive 420ms ease-out both;
+}
+
+.drawing-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.drawing-toolbox {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(16, 24, 18, 0.5);
+  border: 2px solid rgba(245, 242, 231, 0.2);
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  position: relative;
+  z-index: 5;
+}
+
+.tool-heading,
+.drawer-panel,
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drawer-trigger,
+.tool-option,
+.tool-clear,
+.swatch {
+  font-family: var(--font-chalk-hand);
+  border: 2px solid rgba(245, 242, 231, 0.28);
+  background: rgba(245, 242, 231, 0.06);
+  color: var(--chalk-white);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease, border-color 0.12s ease;
+}
+
+.drawer-trigger,
+.tool-option,
+.tool-clear {
+  padding: 0.45rem 0.85rem;
+  font-size: 1rem;
+}
+
+.drawer-trigger.active,
+.tool-option.active,
+.tool-clear:hover,
+.swatch.active {
+  background: rgba(243, 217, 118, 0.18);
+  border-color: var(--chalk-yellow);
+  filter: brightness(1.08);
+}
+
+.drawer-panel {
+  display: none;
+  min-height: 42px;
+}
+
+.drawer-panel.active {
+  display: flex;
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.22);
+}
+
+.tool-clear {
+  background: rgba(159, 210, 159, 0.12);
+}
+
+.drawer-trigger:hover,
+.tool-option:hover,
+.tool-clear:hover,
+.swatch:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 620px) {
+  .drawing-toolbox {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tool-heading,
+  .drawer-panel {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .blackboard::before {

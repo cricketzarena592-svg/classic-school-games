@@ -17,15 +17,45 @@
     const shareLabel = document.getElementById('shareLabel');
     const shareUrl = "https://cricketzarena592-svg.github.io/classic-school-games/index.html";
 
-    shareBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(shareUrl).then(() => {
+    function copyTextToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      return new Promise((resolve, reject) => {
+        const tempArea = document.createElement('textarea');
+        tempArea.value = text;
+        tempArea.setAttribute('readonly', '');
+        tempArea.style.position = 'fixed';
+        tempArea.style.opacity = '0';
+        document.body.appendChild(tempArea);
+        tempArea.select();
+
+        try {
+          const copied = document.execCommand('copy');
+          document.body.removeChild(tempArea);
+          if (copied) resolve(); else reject(new Error('Copy command failed'));
+        } catch (error) {
+          document.body.removeChild(tempArea);
+          reject(error);
+        }
+      });
+    }
+
+    shareBtn.addEventListener('click', async () => {
+      try {
+        await copyTextToClipboard(shareUrl);
         shareLabel.textContent = "Copied!";
         setTimeout(() => {
           shareLabel.textContent = "Share";
         }, 2000);
-      }).catch(err => {
+      } catch (err) {
         console.error("Could not copy URL: ", err);
-      });
+        shareLabel.textContent = "Try Again";
+        setTimeout(() => {
+          shareLabel.textContent = "Share";
+        }, 2000);
+      }
     });
 
     /* About Modal Handler */
