@@ -82,8 +82,11 @@ header {
 }
 
 .brand-icon {
-  background: linear-gradient(145deg, var(--chalk-yellow), var(--chalk-blue));
-  border-radius: 2px;
+  background-image: url("../../favicon.svg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 7px;
   box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.36);
 }
 
